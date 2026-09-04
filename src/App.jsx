@@ -77,12 +77,12 @@ export default function App() {
       {
         mark: { type: 'area', interpolate: 'monotone', color: '#4dd4bd', opacity: 0.16 },
         encoding: {
-          x: { field: 'year', type: 'ordinal', axis: { title: null, labelColor: '#92a0b5', labelAngle: 0, labelPadding: 10, domain: false, tickColor: '#273247' } },
-          y: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#92a0b5', gridColor: '#273247', domain: false, tickColor: 'transparent' }, scale: { zero: true } }
+          x: { field: 'year', type: 'ordinal', axis: { title: null, labelColor: '#66758a', labelAngle: 0, labelPadding: 10, domain: false, tickColor: '#ccd7e2' } },
+          y: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#66758a', gridColor: '#e0e8ef', domain: false, tickColor: 'transparent' }, scale: { zero: true } }
         }
       },
       {
-        mark: { type: 'line', interpolate: 'monotone', color: '#4dd4bd', strokeWidth: 3, point: { filled: true, fill: '#101723', stroke: '#4dd4bd', size: 60, strokeWidth: 2 } },
+        mark: { type: 'line', interpolate: 'monotone', color: '#159d8b', strokeWidth: 3, point: { filled: true, fill: '#ffffff', stroke: '#159d8b', size: 60, strokeWidth: 2 } },
         encoding: {
           x: { field: 'year', type: 'ordinal' },
           y: { field: 'documents', type: 'quantitative' },
@@ -101,8 +101,8 @@ export default function App() {
     data: { values: filteredKeywordData },
     mark: { type: 'bar', cornerRadiusEnd: 6, height: 18 },
     encoding: {
-      y: { field: 'keyword', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#c9d2df', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
-      x: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#92a0b5', gridColor: '#273247', domain: false, ticks: false } },
+      y: { field: 'keyword', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#526278', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
+      x: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#66758a', gridColor: '#e0e8ef', domain: false, ticks: false } },
       color: { field: 'group', type: 'nominal', scale: { domain: ['Tecnologia', 'Aplicações', 'Dados', 'Governança', 'Economia'], range: ['#4dd4bd', '#7e8cff', '#f2c66d', '#f279aa', '#a879e9'] }, legend: null },
       tooltip: [{ field: 'keyword', title: 'Palavra-chave' }, { field: 'documents', title: 'Documentos' }, { field: 'group', title: 'Tema' }]
     },
@@ -119,6 +119,11 @@ export default function App() {
     setSelectedYear('Todos')
   }
 
+  function navigate(page) {
+    setActivePage(page)
+    requestAnimationFrame(() => document.getElementById('dashboard-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
   return <main className="app-shell">
     <aside className="sidebar">
       <a className="brand" href="#inicio" aria-label="Observatório Blockchain">
@@ -128,7 +133,7 @@ export default function App() {
       <nav aria-label="Navegação do dashboard">
         {[
           ['Visão geral', 'overview'], ['Evolução', 'trend'], ['Publicações', 'library'], ['Sobre os dados', 'info']
-        ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} onClick={() => setActivePage(label)}>
+        ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} onClick={() => navigate(label)}>
           <NavIcon name={icon}/><span>{label}</span>
         </button>)}
       </nav>
@@ -138,7 +143,7 @@ export default function App() {
       </div>
     </aside>
 
-    <section className="dashboard" id="inicio">
+    <section className={`dashboard view-${activePage.toLowerCase().replaceAll(' ', '-')}`} id="inicio">
       <header className="topbar">
         <div>
           <p className="eyebrow">INDICADORES · PRODUÇÃO CIENTÍFICA</p>
@@ -167,13 +172,14 @@ export default function App() {
         {(selectedType !== 'Todos' || selectedYear !== 'Todos') && <button className="clear-filter" onClick={clearFilters}>Limpar filtros</button>}
       </section>
 
-      <section className="metrics" aria-label="Resumo">
+      {activePage !== 'Sobre os dados' && <section className="metrics" aria-label="Resumo">
         <MetricCard label="Documentos mapeados" value={compact(selectedCount)} detail={selectedType === 'Todos' ? 'Base consolidada' : `Seleção: ${selectedType}`} />
         <MetricCard label="Pico de produção" value={compact(peak.documents)} detail={`${peak.year} · documentos publicados`} accent="blue" />
         <MetricCard label="Palavra-chave líder" value="Smart contract" detail="81 arquivos indexados" accent="gold" />
         <MetricCard label="Período coberto" value={`${publicationsByYear[0].year}—${publicationsByYear.at(-1).year}`} detail={`${compact(totalInSeries)} documentos na série`} accent="pink" />
-      </section>
+      </section>}
 
+      {activePage !== 'Sobre os dados' ? <div id="dashboard-content">
       <section className="main-grid">
         <article className="panel composition-panel">
           <div className="panel-heading"><div><p className="section-label">DISTRIBUIÇÃO</p><h2>Composição documental</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
@@ -203,11 +209,21 @@ export default function App() {
           <div className="insight-stat"><span>56,9%</span><p>dos registros são artigos científicos.</p></div>
           <a href={source.url} target="_blank" rel="noreferrer">Ver metodologia e fonte <span>→</span></a>
         </article>
-      </section>
+      </section></div> : <section className="about-panel" id="dashboard-content">
+        <p className="section-label">TRANSPARÊNCIA</p>
+        <h2>Sobre os dados</h2>
+        <p>Esta visualização apresenta a produção científica sobre blockchain publicada no painel do Observatório Nacional de Blockchain.</p>
+        <div className="about-grid">
+          <div><span>Fonte pública</span><b>Observatório Nacional de Blockchain</b></div>
+          <div><span>Visualização original</span><b>Painel público no Kibana</b></div>
+          <div><span>Atualização</span><b>Recorte versionado do painel</b></div>
+        </div>
+        <a href={source.url} target="_blank" rel="noreferrer">Acessar a página de origem <span>↗</span></a>
+      </section>}
 
       <footer>
         <span>{source.snapshot}</span>
-        <span>Dados: {source.methodology}</span>
+        <span>{source.description}</span>
       </footer>
     </section>
   </main>

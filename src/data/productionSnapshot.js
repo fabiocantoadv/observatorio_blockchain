@@ -6,7 +6,7 @@ export const source = {
   name: 'Observatório Nacional de Blockchain',
   url: 'https://observatorioblockchain.org.br/producao-cientifica/',
   dashboardUrl: 'https://rnpdash.ibict.br/app/dashboards#/view/525cbbc6-3318-4abc-bfc5-d816ba6271e9?embed=true',
-  methodology: 'OpenAlex, SBC OpenLib (SOL) e OasisBR; busca booleana e refinamento por API do GPT-4o.',
+  description: 'Dados públicos organizados e disponibilizados pelo Observatório Nacional de Blockchain.',
   snapshot: 'Recorte do painel público apresentado na captura de referência'
 }
 
