@@ -9,13 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.0",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
     "react": "latest",
     "react-dom": "latest",
     "vega": "latest",
+    "vega-embed": "latest",
     "vega-lite": "latest",
-    "vega-embed": "latest"
-  },
-  "devDependencies": {}
+    "vite": "latest"
+  }
 }

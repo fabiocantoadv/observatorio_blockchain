@@ -1,9 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { VegaChart } from './components/VegaChart'
-import { documentTypes, keywords, publicationsByYear, source } from './data/productionSnapshot'
-
-const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
-const palette = documentTypes.map((item) => item.color)
+import { AdminPanel } from './components/AdminPanel'
+import initialData from './data/banco_de_dados.json'
 
 function compact(value) {
   return new Intl.NumberFormat('pt-BR').format(value)
@@ -19,15 +17,48 @@ function MetricCard({ label, value, detail, accent = 'mint' }) {
 
 function NavIcon({ name }) {
   const icons = {
-    overview: '⌘', trend: '↗', library: '▤', info: 'i'
+    overview: '⌘', trend: '↗', library: '▤', info: 'i', admin: '⚙'
   }
   return <span className="nav-icon" aria-hidden="true">{icons[name]}</span>
 }
 
 export default function App() {
+  const [data, setData] = useState(initialData)
+  const [databaseVersion, setDatabaseVersion] = useState(null)
+  const [storageState, setStorageState] = useState('seed')
   const [selectedType, setSelectedType] = useState('Todos')
   const [selectedYear, setSelectedYear] = useState('Todos')
   const [activePage, setActivePage] = useState('Visão geral')
+  const { documentTypes, keywords, publicationsByYear, source } = data
+  const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
+  const palette = documentTypes.map((item) => item.color)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/data')
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Fonte de dados indisponível.')))
+      .then((payload) => {
+        if (!active || !payload.data) return
+        setData(payload.data)
+        setDatabaseVersion(payload.etag || null)
+        setStorageState(payload.storage || 'seed')
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
+
+  async function saveData(nextData, password) {
+    const response = await fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+      body: JSON.stringify({ data: nextData, etag: databaseVersion })
+    })
+    const payload = await response.json()
+    if (!response.ok) throw new Error(payload.error || 'Não foi possível publicar as alterações.')
+    setData(payload.data)
+    setDatabaseVersion(payload.etag || null)
+    setStorageState(payload.storage || 'blob')
+  }
 
   const filteredTypes = selectedType === 'Todos'
     ? documentTypes
@@ -132,7 +163,7 @@ export default function App() {
       </a>
       <nav aria-label="Navegação do dashboard">
         {[
-          ['Visão geral', 'overview'], ['Evolução', 'trend'], ['Publicações', 'library'], ['Sobre os dados', 'info']
+          ['Visão geral', 'overview'], ['Evolução', 'trend'], ['Publicações', 'library'], ['Sobre os dados', 'info'], ['Administração', 'admin']
         ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} onClick={() => navigate(label)}>
           <NavIcon name={icon}/><span>{label}</span>
         </button>)}
@@ -155,7 +186,7 @@ export default function App() {
         </div>
       </header>
 
-      <section className="filters" aria-label="Filtros">
+      {activePage !== 'Administração' && <section className="filters" aria-label="Filtros">
         <div className="filter-label"><span>⌕</span><b>Explorar dados</b></div>
         <label>Tipo documental
           <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)}>
@@ -170,16 +201,16 @@ export default function App() {
           </select>
         </label>
         {(selectedType !== 'Todos' || selectedYear !== 'Todos') && <button className="clear-filter" onClick={clearFilters}>Limpar filtros</button>}
-      </section>
+      </section>}
 
-      {activePage !== 'Sobre os dados' && <section className="metrics" aria-label="Resumo">
+      {activePage !== 'Sobre os dados' && activePage !== 'Administração' && <section className="metrics" aria-label="Resumo">
         <MetricCard label="Documentos mapeados" value={compact(selectedCount)} detail={selectedType === 'Todos' ? 'Base consolidada' : `Seleção: ${selectedType}`} />
         <MetricCard label="Pico de produção" value={compact(peak.documents)} detail={`${peak.year} · documentos publicados`} accent="blue" />
         <MetricCard label="Palavra-chave líder" value="Smart contract" detail="81 arquivos indexados" accent="gold" />
         <MetricCard label="Período coberto" value={`${publicationsByYear[0].year}—${publicationsByYear.at(-1).year}`} detail={`${compact(totalInSeries)} documentos na série`} accent="pink" />
       </section>}
 
-      {activePage !== 'Sobre os dados' ? <div id="dashboard-content">
+      {activePage === 'Administração' ? <AdminPanel data={data} onSave={saveData} storageState={storageState} /> : activePage !== 'Sobre os dados' ? <div id="dashboard-content">
       <section className="main-grid">
         <article className="panel composition-panel">
           <div className="panel-heading"><div><p className="section-label">DISTRIBUIÇÃO</p><h2>Composição documental</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
