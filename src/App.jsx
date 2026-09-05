@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { VegaChart } from './components/VegaChart'
 import { AdminPanel } from './components/AdminPanel'
 import { AdminLoginModal } from './components/AdminLoginModal'
+import { ProfileModal } from './components/ProfileModal'
 import initialData from './data/banco_de_dados.json'
+
+const defaultProfile = { name: 'Administrador', initials: 'AD', photo: '' }
+
+function normalizeData(snapshot) {
+  return { ...snapshot, profile: { ...defaultProfile, ...snapshot.profile } }
+}
 
 function compact(value) {
   return new Intl.NumberFormat('pt-BR').format(value)
@@ -24,7 +31,7 @@ function NavIcon({ name }) {
 }
 
 export default function App() {
-  const [data, setData] = useState(initialData)
+  const [data, setData] = useState(() => normalizeData(initialData))
   const [databaseVersion, setDatabaseVersion] = useState(null)
   const [storageState, setStorageState] = useState('seed')
   const [selectedType, setSelectedType] = useState('Todos')
@@ -32,6 +39,7 @@ export default function App() {
   const [activePage, setActivePage] = useState('Visão geral')
   const [adminCredentials, setAdminCredentials] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const { documentTypes, keywords, publicationsByYear, source } = data
   const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
   const palette = documentTypes.map((item) => item.color)
@@ -42,7 +50,7 @@ export default function App() {
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('Fonte de dados indisponível.')))
       .then((payload) => {
         if (!active || !payload.data) return
-        setData(payload.data)
+        setData(normalizeData(payload.data))
         setDatabaseVersion(payload.etag || null)
         setStorageState(payload.storage || 'seed')
       })
@@ -73,7 +81,7 @@ export default function App() {
     })
     const payload = await response.json()
     if (!response.ok) throw new Error(payload.error || 'Não foi possível publicar as alterações.')
-    setData(payload.data)
+    setData(normalizeData(payload.data))
     setDatabaseVersion(payload.etag || null)
     setStorageState(payload.storage || 'blob')
   }
@@ -183,7 +191,20 @@ export default function App() {
 
   function logout() {
     setAdminCredentials(null)
+    setProfileOpen(false)
     navigate('Visão geral')
+  }
+
+  function openProfile() {
+    if (!adminCredentials) {
+      setLoginOpen(true)
+      return
+    }
+    setProfileOpen(true)
+  }
+
+  async function saveProfile(profile) {
+    await saveData({ ...data, profile })
   }
 
   return <main className="app-shell">
@@ -213,7 +234,7 @@ export default function App() {
         </div>
         <div className="topbar-actions">
           <a href={source.dashboardUrl} target="_blank" rel="noreferrer">Abrir no Kibana <span>↗</span></a>
-          <button className="avatar" aria-label="Perfil">WL</button>
+          <button className="avatar" aria-label={adminCredentials ? 'Editar perfil' : 'Entrar na administração'} title={adminCredentials ? 'Editar perfil' : 'Entrar na administração'} onClick={openProfile}>{data.profile.photo ? <img src={data.profile.photo} alt="" /> : data.profile.initials}</button>
         </div>
       </header>
 
@@ -289,5 +310,6 @@ export default function App() {
       </footer>
     </section>
     {loginOpen && <AdminLoginModal onClose={() => setLoginOpen(false)} onAuthenticate={authenticateAdmin} />}
+    {profileOpen && <ProfileModal profile={data.profile} onClose={() => setProfileOpen(false)} onSave={saveProfile} />}
   </main>
 }

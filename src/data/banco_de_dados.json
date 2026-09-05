@@ -1,4 +1,9 @@
 {
+  "profile": {
+    "name": "Administrador",
+    "initials": "AD",
+    "photo": ""
+  },
   "source": {
     "name": "Observatório Nacional de Blockchain",
     "url": "https://observatorioblockchain.org.br/producao-cientifica/",
