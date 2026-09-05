@@ -2,8 +2,20 @@ import { BlobPreconditionFailedError, get, head, put } from '@vercel/blob'
 
 const pathname = 'banco_de_dados.json'
 
-function configured() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN && process.env.ADMIN_PASSWORD)
+function storageConfigured() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || (process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID))
+}
+
+function hasAdminCredentials() {
+  return Boolean(process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD)
+}
+
+function isAuthorized(authorization) {
+  if (!authorization.startsWith('Basic ')) return false
+  const decoded = Buffer.from(authorization.slice(6), 'base64').toString('utf8')
+  const separator = decoded.indexOf(':')
+  if (separator < 0) return false
+  return decoded.slice(0, separator) === process.env.ADMIN_USERNAME && decoded.slice(separator + 1) === process.env.ADMIN_PASSWORD
 }
 
 function validSnapshot(data) {
@@ -19,7 +31,7 @@ function validSnapshot(data) {
 export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store')
 
-  if (!configured()) {
+  if (!storageConfigured()) {
     return response.status(200).json({ data: null, storage: 'seed' })
   }
 
@@ -38,8 +50,11 @@ export default async function handler(request, response) {
     if (request.method !== 'POST') return response.status(405).json({ error: 'Método não permitido.' })
 
     const authorization = request.headers.authorization || ''
-    if (authorization !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
-      return response.status(401).json({ error: 'Senha administrativa inválida.' })
+    if (!hasAdminCredentials()) {
+      return response.status(503).json({ error: 'As credenciais administrativas ainda não foram configuradas.' })
+    }
+    if (!isAuthorized(authorization)) {
+      return response.status(401).json({ error: 'Sua sessão não é válida. Entre novamente.' })
     }
     const { data, etag } = request.body || {}
     if (!validSnapshot(data)) return response.status(400).json({ error: 'O formato do JSON é inválido.' })

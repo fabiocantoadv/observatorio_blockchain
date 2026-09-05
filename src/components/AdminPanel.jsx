@@ -21,9 +21,8 @@ function downloadJson(data) {
   URL.revokeObjectURL(url)
 }
 
-export function AdminPanel({ data, onSave, storageState }) {
+export function AdminPanel({ data, onSave, onLogout, storageState }) {
   const [draft, setDraft] = useState(data)
-  const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const fileInput = useRef(null)
@@ -63,15 +62,10 @@ export function AdminPanel({ data, onSave, storageState }) {
       setMessage('Preencha todos os campos e mantenha ao menos um registro em cada seção.')
       return
     }
-    if (!password) {
-      setMessage('Informe a senha administrativa para publicar as alterações.')
-      return
-    }
     setSaving(true)
     setMessage('')
     try {
-      await onSave(draft, password)
-      setPassword('')
+      await onSave(draft)
       setMessage('Alterações publicadas com sucesso.')
     } catch (error) {
       setMessage(error.message || 'Não foi possível publicar as alterações.')
@@ -105,7 +99,7 @@ export function AdminPanel({ data, onSave, storageState }) {
         <h2>Administrar dados</h2>
         <p>Edite o conteúdo do painel e publique um único arquivo JSON compartilhado.</p>
       </div>
-      <span className={`storage-badge ${storageState === 'blob' ? 'online' : ''}`}>{storageState === 'blob' ? '● Dados publicados' : '○ Dados locais'}</span>
+      <div className="admin-heading-actions"><span className={`storage-badge ${storageState === 'blob' ? 'online' : ''}`}>{storageState === 'blob' ? '● Dados publicados' : '○ Dados locais'}</span><button type="button" className="logout-button" onClick={onLogout}>Sair</button></div>
     </div>
 
     <form onSubmit={handleSave}>
@@ -131,10 +125,7 @@ export function AdminPanel({ data, onSave, storageState }) {
       ]} onUpdate={updateItem} onRemove={removeItem} onAdd={addItem} />
 
       <section className="admin-actions">
-        <div>
-          <label>Senha administrativa<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Configurada no Vercel" autoComplete="current-password" /></label>
-          {message && <p className="admin-message" role="status">{message}</p>}
-        </div>
+        <div>{message && <p className="admin-message" role="status">{message}</p>}</div>
         <div className="action-buttons">
           <button type="button" className="secondary-button" onClick={() => downloadJson(draft)}>Exportar JSON</button>
           <button type="button" className="secondary-button" onClick={() => fileInput.current?.click()}>Importar JSON</button>

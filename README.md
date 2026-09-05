@@ -26,7 +26,7 @@ O menu **Administração** permite incluir, editar, remover, importar e exportar
 Antes de publicar, no projeto do Vercel:
 
 1. Em **Storage**, crie um armazenamento **Vercel Blob privado** e conecte-o ao projeto. Isso cria a variável `BLOB_READ_WRITE_TOKEN`.
-2. Em **Settings → Environment Variables**, crie `ADMIN_PASSWORD` com uma senha longa e exclusiva.
+2. Em **Settings → Environment Variables**, crie `ADMIN_USERNAME` e `ADMIN_PASSWORD` com credenciais longas e exclusivas.
 3. Faça o deploy. Na primeira publicação via painel, o arquivo JSON é criado no Blob.
 
 Enquanto essas variáveis não estiverem configuradas, o site continua usando o JSON incluído no repositório como fonte de leitura. A senha nunca é enviada para o navegador como configuração: ela é verificada somente pela função `/api/data`.

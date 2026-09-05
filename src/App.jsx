@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { VegaChart } from './components/VegaChart'
 import { AdminPanel } from './components/AdminPanel'
+import { AdminLoginModal } from './components/AdminLoginModal'
 import initialData from './data/banco_de_dados.json'
 
 function compact(value) {
@@ -29,6 +30,8 @@ export default function App() {
   const [selectedType, setSelectedType] = useState('Todos')
   const [selectedYear, setSelectedYear] = useState('Todos')
   const [activePage, setActivePage] = useState('Visão geral')
+  const [adminCredentials, setAdminCredentials] = useState(null)
+  const [loginOpen, setLoginOpen] = useState(false)
   const { documentTypes, keywords, publicationsByYear, source } = data
   const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
   const palette = documentTypes.map((item) => item.color)
@@ -47,10 +50,25 @@ export default function App() {
     return () => { active = false }
   }, [])
 
-  async function saveData(nextData, password) {
+  async function authenticateAdmin(credentials) {
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials)
+    })
+    const payload = await response.json()
+    if (!response.ok) throw new Error(payload.error || 'Não foi possível autenticar.')
+    setAdminCredentials(credentials)
+    setLoginOpen(false)
+    navigate('Administração')
+  }
+
+  async function saveData(nextData) {
+    if (!adminCredentials) throw new Error('Sua sessão expirou. Entre novamente.')
+    const authorization = `Basic ${btoa(`${adminCredentials.username}:${adminCredentials.password}`)}`
     const response = await fetch('/api/data', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+      headers: { 'Content-Type': 'application/json', Authorization: authorization },
       body: JSON.stringify({ data: nextData, etag: databaseVersion })
     })
     const payload = await response.json()
@@ -155,6 +173,19 @@ export default function App() {
     requestAnimationFrame(() => document.getElementById('dashboard-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
+  function selectPage(page) {
+    if (page === 'Administração' && !adminCredentials) {
+      setLoginOpen(true)
+      return
+    }
+    navigate(page)
+  }
+
+  function logout() {
+    setAdminCredentials(null)
+    navigate('Visão geral')
+  }
+
   return <main className="app-shell">
     <aside className="sidebar">
       <a className="brand" href="#inicio" aria-label="Observatório Blockchain">
@@ -164,7 +195,7 @@ export default function App() {
       <nav aria-label="Navegação do dashboard">
         {[
           ['Visão geral', 'overview'], ['Evolução', 'trend'], ['Publicações', 'library'], ['Sobre os dados', 'info'], ['Administração', 'admin']
-        ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} onClick={() => navigate(label)}>
+        ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} onClick={() => selectPage(label)}>
           <NavIcon name={icon}/><span>{label}</span>
         </button>)}
       </nav>
@@ -210,7 +241,7 @@ export default function App() {
         <MetricCard label="Período coberto" value={`${publicationsByYear[0].year}—${publicationsByYear.at(-1).year}`} detail={`${compact(totalInSeries)} documentos na série`} accent="pink" />
       </section>}
 
-      {activePage === 'Administração' ? <AdminPanel data={data} onSave={saveData} storageState={storageState} /> : activePage !== 'Sobre os dados' ? <div id="dashboard-content">
+      {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? <div id="dashboard-content">
       <section className="main-grid">
         <article className="panel composition-panel">
           <div className="panel-heading"><div><p className="section-label">DISTRIBUIÇÃO</p><h2>Composição documental</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
@@ -257,5 +288,6 @@ export default function App() {
         <span>{source.description}</span>
       </footer>
     </section>
+    {loginOpen && <AdminLoginModal onClose={() => setLoginOpen(false)} onAuthenticate={authenticateAdmin} />}
   </main>
 }
