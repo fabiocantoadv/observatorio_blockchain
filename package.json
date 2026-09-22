@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:data": "node scripts/build-database.mjs",
+    "serve": "node scripts/serve-local.mjs"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.0",
     "@vitejs/plugin-react": "latest",
+    "better-sqlite3": "^13.0.3",
     "react": "latest",
     "react-dom": "latest",
     "vega": "latest",

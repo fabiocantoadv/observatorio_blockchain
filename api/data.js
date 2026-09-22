@@ -1,4 +1,5 @@
 import { BlobPreconditionFailedError, get, head, put } from '@vercel/blob'
+import { buildSnapshotFromDatabase } from './lib/database.mjs'
 
 const pathname = 'banco_de_dados.json'
 
@@ -32,13 +33,19 @@ export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store')
 
   if (!storageConfigured()) {
-    return response.status(200).json({ data: null, storage: 'seed' })
+    // No admin storage configured: serve the aggregated data straight from
+    // the SQLite database built from the source CSVs.
+    if (request.method === 'GET') {
+      return response.status(200).json({ data: buildSnapshotFromDatabase(), storage: 'sqlite' })
+    }
+    return response.status(503).json({ error: 'As credenciais administrativas ainda não foram configuradas.' })
   }
 
   try {
     if (request.method === 'GET') {
       const stored = await get(pathname, { access: 'private', useCache: false })
-      if (!stored) return response.status(200).json({ data: null, storage: 'seed' })
+      // No admin override published yet: fall back to the SQLite snapshot.
+      if (!stored) return response.status(200).json({ data: buildSnapshotFromDatabase(), storage: 'sqlite' })
       return response.status(200).json({
         data: await new Response(stored.stream).json(),
         etag: stored.blob.etag,

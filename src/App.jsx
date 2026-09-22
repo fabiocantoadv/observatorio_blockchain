@@ -3,9 +3,19 @@ import { VegaChart } from './components/VegaChart'
 import { AdminPanel } from './components/AdminPanel'
 import { AdminLoginModal } from './components/AdminLoginModal'
 import { ProfileModal } from './components/ProfileModal'
-import initialData from './data/banco_de_dados.json'
 
 const defaultProfile = { name: 'Administrador', initials: 'AD', photo: '' }
+
+// Empty bootstrap state. The real data is loaded from /api/data (backed by
+// observatorio.sql) as soon as the app mounts.
+const emptyData = {
+  profile: defaultProfile,
+  source: { name: '', url: '#', dashboardUrl: '#', description: '', snapshot: '' },
+  documentTypes: [],
+  publicationsByYear: [],
+  keywords: [],
+  patents: null,
+}
 
 function normalizeData(snapshot) {
   return { ...snapshot, profile: { ...defaultProfile, ...snapshot.profile } }
@@ -31,7 +41,7 @@ function NavIcon({ name }) {
 }
 
 export default function App() {
-  const [data, setData] = useState(() => normalizeData(initialData))
+  const [data, setData] = useState(emptyData)
   const [databaseVersion, setDatabaseVersion] = useState(null)
   const [storageState, setStorageState] = useState('seed')
   const [selectedType, setSelectedType] = useState('Todos')
@@ -41,8 +51,13 @@ export default function App() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const { documentTypes, keywords, publicationsByYear, source } = data
+  const patents = data.patents || null
   const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
   const palette = documentTypes.map((item) => item.color)
+  const leadKeyword = keywords[0] || { keyword: '—', documents: 0 }
+  const articleShare = totalDocuments
+    ? ((documentTypes.find((item) => item.type === 'Artigo')?.count || 0) / totalDocuments) * 100
+    : 0
 
   useEffect(() => {
     let active = true
@@ -94,7 +109,7 @@ export default function App() {
     ? publicationsByYear
     : publicationsByYear.filter((item) => item.year === Number(selectedYear))
   const totalInSeries = publicationsByYear.reduce((sum, item) => sum + item.documents, 0)
-  const peak = publicationsByYear.reduce((current, item) => item.documents > current.documents ? item : current)
+  const peak = publicationsByYear.reduce((current, item) => item.documents > current.documents ? item : current, { year: '—', documents: 0 })
   const filteredKeywordData = selectedType === 'Todos' ? keywords : keywords.map((item) => ({
     ...item,
     documents: Math.max(1, Math.round(item.documents * (selectedCount / totalDocuments)))
@@ -165,6 +180,21 @@ export default function App() {
     },
     config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }
   }), [filteredKeywordData])
+
+  const patentCountrySpec = useMemo(() => patents ? ({
+    $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
+    background: 'transparent',
+    width: 'container',
+    height: 275,
+    data: { values: patents.byCountry },
+    mark: { type: 'bar', cornerRadiusEnd: 6, height: 18, color: '#7e8cff' },
+    encoding: {
+      y: { field: 'country', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#526278', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
+      x: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: '#66758a', gridColor: '#e0e8ef', domain: false, ticks: false } },
+      tooltip: [{ field: 'country', title: 'País do titular' }, { field: 'count', title: 'Patentes' }]
+    },
+    config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }
+  }) : null, [patents])
 
   const typeRows = filteredTypes.map((item) => ({
     ...item,
@@ -258,8 +288,8 @@ export default function App() {
       {activePage !== 'Sobre os dados' && activePage !== 'Administração' && <section className="metrics" aria-label="Resumo">
         <MetricCard label="Documentos mapeados" value={compact(selectedCount)} detail={selectedType === 'Todos' ? 'Base consolidada' : `Seleção: ${selectedType}`} />
         <MetricCard label="Pico de produção" value={compact(peak.documents)} detail={`${peak.year} · documentos publicados`} accent="blue" />
-        <MetricCard label="Palavra-chave líder" value="Smart contract" detail="81 arquivos indexados" accent="gold" />
-        <MetricCard label="Período coberto" value={`${publicationsByYear[0].year}—${publicationsByYear.at(-1).year}`} detail={`${compact(totalInSeries)} documentos na série`} accent="pink" />
+        <MetricCard label="Palavra-chave líder" value={leadKeyword.keyword} detail={`${compact(leadKeyword.documents)} documentos indexados`} accent="gold" />
+        <MetricCard label="Período coberto" value={publicationsByYear.length ? `${publicationsByYear[0].year}—${publicationsByYear.at(-1).year}` : '—'} detail={`${compact(totalInSeries)} documentos na série`} accent="pink" />
       </section>}
 
       {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? <div id="dashboard-content">
@@ -288,18 +318,31 @@ export default function App() {
         <article className="panel insight-panel">
           <p className="section-label">LEITURA RÁPIDA</p>
           <h2>Produção científica em blockchain</h2>
-          <p className="insight-copy">Artigos concentram a maior parte da base, enquanto a produção anual ganha escala a partir de 2018.</p>
-          <div className="insight-stat"><span>56,9%</span><p>dos registros são artigos científicos.</p></div>
+          <p className="insight-copy">Artigos concentram a maior parte da base, enquanto a produção anual ganha escala a partir de 2018.{patents ? ` Em paralelo, ${compact(patents.total)} patentes foram mapeadas.` : ''}</p>
+          <div className="insight-stat"><span>{articleShare.toFixed(1).replace('.', ',')}%</span><p>dos registros são artigos científicos.</p></div>
           <a href={source.url} target="_blank" rel="noreferrer">Ver metodologia e fonte <span>→</span></a>
         </article>
-      </section></div> : <section className="about-panel" id="dashboard-content">
+      </section>
+
+      {patents && <section className="lower-grid">
+        <article className="panel keywords-panel">
+          <div className="panel-heading"><div><p className="section-label">PATENTES</p><h2>Depósitos por país do titular</h2></div><span className="data-chip">{compact(patents.total)} patentes</span></div>
+          <VegaChart spec={patentCountrySpec}/>
+        </article>
+        <article className="panel insight-panel">
+          <p className="section-label">PROPRIEDADE INTELECTUAL</p>
+          <h2>Patentes em blockchain</h2>
+          <p className="insight-copy">Base de patentes consolidada de Google Patents, INPI e IBICT, com o Brasil liderando os depósitos entre os titulares mapeados.</p>
+          <div className="insight-stat"><span>{compact(patents.total)}</span><p>patentes mapeadas na base consolidada.</p></div>
+        </article>
+      </section>}</div> : <section className="about-panel" id="dashboard-content">
         <p className="section-label">TRANSPARÊNCIA</p>
         <h2>Sobre os dados</h2>
-        <p>Esta visualização apresenta a produção científica sobre blockchain publicada no painel do Observatório Nacional de Blockchain.</p>
+        <p>Esta visualização consolida a produção científica e as patentes sobre blockchain a partir de três bases públicas: OpenAlex, OASISbr (IBICT) e uma base de patentes de Google Patents, INPI e IBICT. Os dados são ingeridos dos arquivos CSV para um banco SQLite, que alimenta os gráficos.</p>
         <div className="about-grid">
-          <div><span>Fonte pública</span><b>Observatório Nacional de Blockchain</b></div>
-          <div><span>Visualização original</span><b>Painel público no Kibana</b></div>
-          <div><span>Atualização</span><b>Recorte versionado do painel</b></div>
+          <div><span>Publicações internacionais</span><b>OpenAlex</b></div>
+          <div><span>Teses, dissertações e TCCs</span><b>OASISbr · IBICT</b></div>
+          <div><span>Patentes</span><b>Google Patents · INPI · IBICT</b></div>
         </div>
         <a href={source.url} target="_blank" rel="noreferrer">Acessar a página de origem <span>↗</span></a>
       </section>}

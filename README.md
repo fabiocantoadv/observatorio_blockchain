@@ -15,9 +15,41 @@ Para criar a versão de produção:
 npm run build
 ```
 
-## Dados e atribuição
+## Dados, banco SQLite e atribuição
 
-O recorte inicial exibido está em [`src/data/banco_de_dados.json`](src/data/banco_de_dados.json) e identifica a origem pública: [Produção Científica — Observatório Nacional de Blockchain](https://observatorioblockchain.org.br/producao-cientifica/). O próprio Observatório informa que os dados podem ser baixados e usados livremente com a devida atribuição.
+Os gráficos são alimentados por dados reais de três bases públicas: OpenAlex (artigos, capítulos e livros), OASISbr/IBICT (teses, dissertações e TCCs) e uma base de patentes de Google Patents, INPI e IBICT.
+
+Esses dados **já estão consolidados** dentro de `src/data/observatorio.sql`, que é a fonte única do painel. Os CSVs de origem **não são versionados** no repositório — eles só são necessários para reconstruir o banco do zero.
+
+### Reconstruir o banco do zero (opcional)
+
+Para reimportar tudo, coloque os três CSVs na raiz do projeto e rode:
+
+```bash
+npm run build:data
+```
+
+Arquivos esperados na raiz:
+
+- `openalex_consolidado_2026_set.csv`
+- `oasisbr_consolidado_2026_set.csv`
+- `patentes_blockchain_GooglePatents_INPI_IBICT_fulldata_set_2026.csv`
+
+O script gera `src/data/observatorio.sql`, a **fonte única de dados** do painel:
+
+- Tabelas `publicacoes`, `keywords_publicacao` e `patentes` — os dados dos gráficos.
+- Tabela `metadados` — configuração do painel (`profile` e `source`) em formato chave/valor JSON.
+
+> O arquivo `observatorio.sql` é, apesar da extensão, um banco **SQLite binário**. Abra-o com qualquer cliente SQLite (DB Browser for SQLite, extensão SQLite do VS Code ou o utilitário `sqlite3`) para executar `SELECT`, `INSERT`, `UPDATE`, etc. Exemplos:
+>
+> ```bash
+> sqlite3 src/data/observatorio.sql "SELECT tipo, COUNT(*) FROM publicacoes GROUP BY tipo;"
+> sqlite3 src/data/observatorio.sql "SELECT * FROM patentes LIMIT 5;"
+> ```
+
+A função `/api/data` calcula as agregações e lê `profile`/`source` diretamente do SQLite (`api/lib/database.mjs`). Não há mais nenhum arquivo JSON de dados no repositório.
+
+Fonte de referência: [Produção Científica — Observatório Nacional de Blockchain](https://observatorioblockchain.org.br/producao-cientifica/). Os dados podem ser baixados e usados livremente com a devida atribuição.
 
 ## Painel administrativo no Vercel
 
