@@ -11,14 +11,16 @@
     "serve": "node scripts/serve-local.mjs"
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.0",
+    "@libsql/client": "^0.18.0",
     "@vitejs/plugin-react": "latest",
-    "better-sqlite3": "^13.0.3",
     "react": "latest",
     "react-dom": "latest",
     "vega": "latest",
     "vega-embed": "latest",
     "vega-lite": "latest",
     "vite": "latest"
+  },
+  "devDependencies": {
+    "better-sqlite3": "^13.0.3"
   }
 }

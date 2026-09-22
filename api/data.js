@@ -1,4 +1,4 @@
-import { buildSnapshotFromDatabase, saveSnapshotToDatabase, verifyUser } from './lib/database.mjs'
+import { buildSnapshot, saveSnapshot, verifyUser } from './lib/db.mjs'
 
 function envMatches(username, password) {
   if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) return false
@@ -27,31 +27,29 @@ function validSnapshot(data) {
 export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store')
 
-  if (request.method === 'GET') {
-    const data = buildSnapshotFromDatabase()
-    if (!data) return response.status(200).json({ data: null, storage: 'seed' })
-    return response.status(200).json({ data, storage: 'sqlite' })
-  }
-
-  if (request.method !== 'POST') {
-    return response.status(405).json({ error: 'Método não permitido.' })
-  }
-
-  // Authenticate the admin (database users, with env-var fallback).
-  const creds = parseBasicAuth(request.headers.authorization || '')
-  if (!creds || !(verifyUser(creds.username, creds.password) || envMatches(creds.username, creds.password))) {
-    return response.status(401).json({ error: 'Sua sessão não é válida. Entre novamente.' })
-  }
-
-  const { data } = request.body || {}
-  if (!validSnapshot(data)) return response.status(400).json({ error: 'O formato dos dados é inválido.' })
-
   try {
-    const saved = saveSnapshotToDatabase(data)
+    if (request.method === 'GET') {
+      const data = await buildSnapshot()
+      if (!data) return response.status(200).json({ data: null, storage: 'seed' })
+      return response.status(200).json({ data, storage: 'sqlite' })
+    }
+
+    if (request.method !== 'POST') {
+      return response.status(405).json({ error: 'Método não permitido.' })
+    }
+
+    const creds = parseBasicAuth(request.headers.authorization || '')
+    if (!creds || !((await verifyUser(creds.username, creds.password)) || envMatches(creds.username, creds.password))) {
+      return response.status(401).json({ error: 'Sua sessão não é válida. Entre novamente.' })
+    }
+
+    const { data } = request.body || {}
+    if (!validSnapshot(data)) return response.status(400).json({ error: 'O formato dos dados é inválido.' })
+
+    const saved = await saveSnapshot(data)
     return response.status(200).json({ data: saved, storage: 'sqlite', updatedAt: new Date().toISOString() })
   } catch (error) {
     console.error(error)
-    // Serverless filesystem is read-only: writes cannot persist there.
-    return response.status(503).json({ error: 'O banco não pôde ser gravado neste ambiente (somente leitura). Rode localmente para persistir alterações.' })
+    return response.status(500).json({ error: 'Erro ao acessar o banco de dados.' })
   }
 }

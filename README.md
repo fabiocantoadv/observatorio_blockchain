@@ -53,23 +53,41 @@ Fonte de referência: [Produção Científica — Observatório Nacional de Bloc
 
 ## Painel administrativo
 
-O menu **Administração** permite incluir, editar e remover os dados exibidos. O login é feito contra a tabela `usuarios` do próprio banco (`observatorio.sql`), com senhas protegidas por hash **scrypt** (nunca em texto puro). Ao publicar, a edição é gravada de volta no banco (tabela `metadados`, como `snapshot_override`).
+O menu **Administração** permite incluir, editar e remover os dados exibidos. O login é validado contra a tabela `usuarios` do banco, com senhas protegidas por hash **scrypt** (nunca em texto puro). Ao publicar, a edição é gravada de volta no banco (tabela `metadados`, como `snapshot_override`) — no arquivo local ou no Turso, conforme o ambiente.
 
-### Credenciais
+### Banco de dados (libSQL / Turso)
 
-O usuário padrão é semeado ao construir o banco. Para definir/alterar credenciais, use variáveis de ambiente ao rodar o script de migração ou de build:
+A camada de dados (`api/lib/db.mjs`) usa o cliente **libSQL** (`@libsql/client`), que funciona tanto localmente quanto em serverless:
+
+- **Local:** sem variáveis de ambiente, conecta no arquivo `src/data/observatorio.sql` (via `file:`). As edições persistem no arquivo.
+- **Produção (Vercel):** conecta num banco **Turso** quando `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN` estão configuradas. Leitura **e escrita** persistem, e o painel de administração grava as edições diretamente no Turso.
+
+### Configurar o Turso
+
+1. Instale o CLI e faça login: veja [docs.turso.tech](https://docs.turso.tech). Depois crie um banco:
+
+   ```bash
+   turso db create observatorioblockchain
+   turso db show observatorioblockchain --url        # -> TURSO_DATABASE_URL (libsql://...)
+   turso db tokens create observatorioblockchain     # -> TURSO_AUTH_TOKEN
+   ```
+
+2. Popule o Turso com os dados do `observatorio.sql` local:
+
+   ```bash
+   TURSO_DATABASE_URL="libsql://...turso.io" TURSO_AUTH_TOKEN="..." node scripts/push-to-turso.mjs
+   ```
+
+3. Na Vercel, em **Settings → Environment Variables**, cadastre `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN` (ambiente Production). Faça o redeploy.
+
+### Credenciais de admin
+
+O usuário admin fica na tabela `usuarios` (senha em hash **scrypt**, nunca em texto puro). Para criar/atualizar antes de fazer o push para o Turso:
 
 ```bash
-# cria/atualiza o usuário admin no observatorio.sql
 SEED_ADMIN_USERNAME=admin SEED_ADMIN_PASSWORD="sua-senha" node scripts/migrate-usuarios.mjs
 ```
 
-Como alternativa (fallback), o login também aceita as variáveis `ADMIN_USERNAME`/`ADMIN_PASSWORD` do ambiente, caso a tabela `usuarios` não exista.
+Como alternativa (fallback), o login também aceita `ADMIN_USERNAME`/`ADMIN_PASSWORD` do ambiente.
 
-### Persistência e limitação em serverless
-
-Rodando **localmente** (`npm run build` + `npm run serve`), as edições do painel são gravadas no `observatorio.sql` e persistem.
-
-Em ambientes **serverless** (ex.: Vercel), o sistema de arquivos é somente-leitura: o login funciona, mas a gravação não persiste — a API responde `503` nesse caso. Para escrita persistente em produção seria necessário um banco gerenciado (ex.: Turso/libSQL). Este projeto é uma POC e prioriza o fluxo local.
-
-> Aviso de segurança: por ser uma POC, o `observatorio.sql` (versionado) contém o hash do usuário admin. Não reutilize senhas reais aqui e troque a senha antes de qualquer uso além de demonstração.
+> Aviso de segurança: por ser uma POC, o `observatorio.sql` versionado contém o hash do usuário admin. Não reutilize senhas reais e troque a senha antes de qualquer uso além de demonstração.
