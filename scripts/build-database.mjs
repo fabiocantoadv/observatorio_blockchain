@@ -19,6 +19,7 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parseCsvFile } from './lib/csv.mjs'
+import { hashPassword } from './lib/password.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dataDir = join(root, 'src', 'data')
@@ -88,9 +89,10 @@ async function main() {
 
   console.log('Reading CSVs and building SQLite database…')
 
-  // Preserve profile/source from a previous build (e.g. admin edits) before
-  // the tables are dropped and recreated.
+  // Preserve profile/source and admin users from a previous build before the
+  // tables are dropped and recreated.
   const previousMeta = {}
+  let previousUsers = []
   if (existsSync(dbPath)) {
     try {
       const old = new Database(dbPath, { readonly: true })
@@ -98,6 +100,11 @@ async function main() {
       for (const r of rows) previousMeta[r.chave] = JSON.parse(r.valor)
       old.close()
     } catch { /* no metadata table yet — use defaults */ }
+    try {
+      const old = new Database(dbPath, { readonly: true })
+      previousUsers = old.prepare('SELECT username, senha_hash FROM usuarios').all()
+      old.close()
+    } catch { /* no usuarios table yet — seed default */ }
   }
 
   const db = new Database(dbPath)
@@ -108,6 +115,7 @@ async function main() {
     DROP TABLE IF EXISTS publicacoes;
     DROP TABLE IF EXISTS patentes;
     DROP TABLE IF EXISTS metadados;
+    DROP TABLE IF EXISTS usuarios;
 
     -- Key/value store for non-tabular dashboard config (profile, source).
     -- Values are JSON strings. This makes observatorio.sql the single source
@@ -115,6 +123,12 @@ async function main() {
     CREATE TABLE metadados (
       chave TEXT PRIMARY KEY,
       valor TEXT NOT NULL
+    );
+
+    -- Admin users. Passwords are hashed (scrypt), never stored in plain text.
+    CREATE TABLE usuarios (
+      username TEXT PRIMARY KEY,
+      senha_hash TEXT NOT NULL
     );
 
     CREATE TABLE publicacoes (
@@ -265,6 +279,19 @@ async function main() {
     description: 'Dados públicos consolidados de OpenAlex, OASISbr e patentes (Google Patents/INPI/IBICT).',
     snapshot: 'Consolidação de setembro/2026 a partir das bases OpenAlex, OASISbr e de patentes.',
   }))
+
+  // --- Admin users ---------------------------------------------------------
+  // Preserve users from a previous build; otherwise seed a default admin.
+  // The default password can be overridden with SEED_ADMIN_PASSWORD.
+  const insertUser = db.prepare(`INSERT INTO usuarios (username, senha_hash) VALUES (?, ?)`)
+  if (previousUsers.length) {
+    for (const u of previousUsers) insertUser.run(u.username, u.senha_hash)
+  } else {
+    const seedUser = process.env.SEED_ADMIN_USERNAME || 'admin'
+    const seedPass = process.env.SEED_ADMIN_PASSWORD || 'Dados@2026'
+    insertUser.run(seedUser, hashPassword(seedPass))
+    console.log(`  usuário admin semeado: ${seedUser}`)
+  }
 
   // --- Report --------------------------------------------------------------
   const documentTypes = db.prepare(`SELECT tipo, COUNT(*) AS count FROM publicacoes GROUP BY tipo ORDER BY count DESC`).all()

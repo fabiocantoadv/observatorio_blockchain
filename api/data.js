@@ -1,22 +1,17 @@
-import { BlobPreconditionFailedError, get, head, put } from '@vercel/blob'
-import { buildSnapshotFromDatabase } from './lib/database.mjs'
+import { buildSnapshotFromDatabase, saveSnapshotToDatabase, verifyUser } from './lib/database.mjs'
 
-const pathname = 'banco_de_dados.json'
-
-function storageConfigured() {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || (process.env.VERCEL_OIDC_TOKEN && process.env.BLOB_STORE_ID))
+function envMatches(username, password) {
+  if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) return false
+  return username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD
 }
 
-function hasAdminCredentials() {
-  return Boolean(process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD)
-}
-
-function isAuthorized(authorization) {
-  if (!authorization.startsWith('Basic ')) return false
+// Parses a "Basic base64(user:pass)" header into { username, password }.
+function parseBasicAuth(authorization) {
+  if (!authorization || !authorization.startsWith('Basic ')) return null
   const decoded = Buffer.from(authorization.slice(6), 'base64').toString('utf8')
-  const separator = decoded.indexOf(':')
-  if (separator < 0) return false
-  return decoded.slice(0, separator) === process.env.ADMIN_USERNAME && decoded.slice(separator + 1) === process.env.ADMIN_PASSWORD
+  const sep = decoded.indexOf(':')
+  if (sep < 0) return null
+  return { username: decoded.slice(0, sep), password: decoded.slice(sep + 1) }
 }
 
 function validSnapshot(data) {
@@ -32,64 +27,31 @@ function validSnapshot(data) {
 export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store')
 
-  if (!storageConfigured()) {
-    // No admin storage configured: serve the aggregated data straight from
-    // the SQLite database built from the source CSVs.
-    if (request.method === 'GET') {
-      return response.status(200).json({ data: buildSnapshotFromDatabase(), storage: 'sqlite' })
-    }
-    return response.status(503).json({ error: 'As credenciais administrativas ainda não foram configuradas.' })
+  if (request.method === 'GET') {
+    const data = buildSnapshotFromDatabase()
+    if (!data) return response.status(200).json({ data: null, storage: 'seed' })
+    return response.status(200).json({ data, storage: 'sqlite' })
   }
 
+  if (request.method !== 'POST') {
+    return response.status(405).json({ error: 'Método não permitido.' })
+  }
+
+  // Authenticate the admin (database users, with env-var fallback).
+  const creds = parseBasicAuth(request.headers.authorization || '')
+  if (!creds || !(verifyUser(creds.username, creds.password) || envMatches(creds.username, creds.password))) {
+    return response.status(401).json({ error: 'Sua sessão não é válida. Entre novamente.' })
+  }
+
+  const { data } = request.body || {}
+  if (!validSnapshot(data)) return response.status(400).json({ error: 'O formato dos dados é inválido.' })
+
   try {
-    if (request.method === 'GET') {
-      const stored = await get(pathname, { access: 'private', useCache: false })
-      // No admin override published yet: fall back to the SQLite snapshot.
-      if (!stored) return response.status(200).json({ data: buildSnapshotFromDatabase(), storage: 'sqlite' })
-      return response.status(200).json({
-        data: await new Response(stored.stream).json(),
-        etag: stored.blob.etag,
-        updatedAt: stored.blob.uploadedAt,
-        storage: 'blob'
-      })
-    }
-
-    if (request.method !== 'POST') return response.status(405).json({ error: 'Método não permitido.' })
-
-    const authorization = request.headers.authorization || ''
-    if (!hasAdminCredentials()) {
-      return response.status(503).json({ error: 'As credenciais administrativas ainda não foram configuradas.' })
-    }
-    if (!isAuthorized(authorization)) {
-      return response.status(401).json({ error: 'Sua sessão não é válida. Entre novamente.' })
-    }
-    const { data, etag } = request.body || {}
-    if (!validSnapshot(data)) return response.status(400).json({ error: 'O formato do JSON é inválido.' })
-
-    let current
-    try {
-      current = await head(pathname)
-    } catch (error) {
-      if (error?.status !== 404 && error?.name !== 'BlobNotFoundError') throw error
-    }
-    if (current && etag !== current.etag) {
-      return response.status(409).json({ error: 'Os dados foram alterados por outra pessoa. Atualize a página e tente novamente.' })
-    }
-
-    const blob = await put(pathname, JSON.stringify(data, null, 2), {
-      access: 'private',
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: 'application/json; charset=utf-8',
-      cacheControlMaxAge: 60,
-      ...(current ? { ifMatch: current.etag } : {})
-    })
-    return response.status(200).json({ data, etag: blob.etag, updatedAt: new Date().toISOString(), storage: 'blob' })
+    const saved = saveSnapshotToDatabase(data)
+    return response.status(200).json({ data: saved, storage: 'sqlite', updatedAt: new Date().toISOString() })
   } catch (error) {
-    if (error instanceof BlobPreconditionFailedError || error?.name === 'BlobPreconditionFailedError') {
-      return response.status(409).json({ error: 'Os dados foram alterados por outra pessoa. Atualize a página e tente novamente.' })
-    }
     console.error(error)
-    return response.status(500).json({ error: 'Erro ao acessar o armazenamento de dados.' })
+    // Serverless filesystem is read-only: writes cannot persist there.
+    return response.status(503).json({ error: 'O banco não pôde ser gravado neste ambiente (somente leitura). Rode localmente para persistir alterações.' })
   }
 }

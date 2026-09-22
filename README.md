@@ -51,16 +51,25 @@ A função `/api/data` calcula as agregações e lê `profile`/`source` diretame
 
 Fonte de referência: [Produção Científica — Observatório Nacional de Blockchain](https://observatorioblockchain.org.br/producao-cientifica/). Os dados podem ser baixados e usados livremente com a devida atribuição.
 
-## Painel administrativo no Vercel
+## Painel administrativo
 
-O menu **Administração** permite incluir, editar, remover, importar e exportar os dados do painel. Em produção, ele salva o conteúdo em um único arquivo `banco_de_dados.json` no Vercel Blob; o dashboard público passa a carregá-lo automaticamente, sem exigir novo deploy.
+O menu **Administração** permite incluir, editar e remover os dados exibidos. O login é feito contra a tabela `usuarios` do próprio banco (`observatorio.sql`), com senhas protegidas por hash **scrypt** (nunca em texto puro). Ao publicar, a edição é gravada de volta no banco (tabela `metadados`, como `snapshot_override`).
 
-Antes de publicar, no projeto do Vercel:
+### Credenciais
 
-1. Em **Storage**, crie um armazenamento **Vercel Blob privado** e conecte-o ao projeto. Isso cria a variável `BLOB_READ_WRITE_TOKEN`.
-2. Em **Settings → Environment Variables**, crie `ADMIN_USERNAME` e `ADMIN_PASSWORD` com credenciais longas e exclusivas.
-3. Faça o deploy. Na primeira publicação via painel, o arquivo JSON é criado no Blob.
+O usuário padrão é semeado ao construir o banco. Para definir/alterar credenciais, use variáveis de ambiente ao rodar o script de migração ou de build:
 
-Enquanto essas variáveis não estiverem configuradas, o site continua usando o JSON incluído no repositório como fonte de leitura. A senha nunca é enviada para o navegador como configuração: ela é verificada somente pela função `/api/data`.
+```bash
+# cria/atualiza o usuário admin no observatorio.sql
+SEED_ADMIN_USERNAME=admin SEED_ADMIN_PASSWORD="sua-senha" node scripts/migrate-usuarios.mjs
+```
 
-O painel original é publicado no Kibana. Como ele não disponibiliza uma API aberta consumível diretamente pelo navegador, o projeto usa um recorte versionado dos valores visíveis no painel. Para atualizar a visualização, exporte a nova base do Kibana e substitua os arrays desse arquivo, mantendo a atribuição à fonte.
+Como alternativa (fallback), o login também aceita as variáveis `ADMIN_USERNAME`/`ADMIN_PASSWORD` do ambiente, caso a tabela `usuarios` não exista.
+
+### Persistência e limitação em serverless
+
+Rodando **localmente** (`npm run build` + `npm run serve`), as edições do painel são gravadas no `observatorio.sql` e persistem.
+
+Em ambientes **serverless** (ex.: Vercel), o sistema de arquivos é somente-leitura: o login funciona, mas a gravação não persiste — a API responde `503` nesse caso. Para escrita persistente em produção seria necessário um banco gerenciado (ex.: Turso/libSQL). Este projeto é uma POC e prioriza o fluxo local.
+
+> Aviso de segurança: por ser uma POC, o `observatorio.sql` (versionado) contém o hash do usuário admin. Não reutilize senhas reais aqui e troque a senha antes de qualquer uso além de demonstração.
