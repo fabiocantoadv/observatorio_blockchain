@@ -12,7 +12,7 @@
 
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { verifyPassword } from '../../scripts/lib/password.mjs'
+import { verifyPassword } from './password.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const localFile = join(here, '..', '..', 'src', 'data', 'observatorio.sql')
