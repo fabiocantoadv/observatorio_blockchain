@@ -1,12 +1,3 @@
-// Lightweight local server for previewing the production build together with
-// the /api serverless functions (which `vite dev` does not run).
-//
-// Usage: npm run serve   (after `npm run build`)
-//
-// It serves the static files from dist/ and routes /api/data and /api/auth to
-// the same handlers used in production, wrapping Node's req/res with the small
-// Vercel-style helpers the handlers expect (req.body, res.status().json()).
-
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -55,7 +46,6 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`)
   const pathname = url.pathname
 
-  // API routes
   if (apiHandlers[pathname]) {
     try {
       const mod = await apiHandlers[pathname]()
@@ -72,7 +62,6 @@ const server = createServer(async (req, res) => {
     return
   }
 
-  // Static files (SPA fallback to index.html)
   let filePath = join(distDir, pathname === '/' ? 'index.html' : pathname)
   if (!existsSync(filePath)) filePath = join(distDir, 'index.html')
   try {

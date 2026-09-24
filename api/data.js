@@ -5,7 +5,6 @@ function envMatches(username, password) {
   return username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD
 }
 
-// Parses a "Basic base64(user:pass)" header into { username, password }.
 function parseBasicAuth(authorization) {
   if (!authorization || !authorization.startsWith('Basic ')) return null
   const decoded = Buffer.from(authorization.slice(6), 'base64').toString('utf8')

@@ -1,7 +1,3 @@
-// Minimal, robust CSV parser that handles quoted fields, embedded commas,
-// escaped double quotes ("") and newlines inside quoted values.
-// Returns an array of objects keyed by the header row.
-
 import { createReadStream } from 'node:fs'
 
 export async function parseCsvFile(path, onRow) {
@@ -19,7 +15,6 @@ export async function parseCsvFile(path, onRow) {
 
   function endRow() {
     endField()
-    // Ignore fully empty trailing rows
     if (row.length === 1 && row[0] === '') {
       row = []
       return
@@ -74,7 +69,6 @@ export async function parseCsvFile(path, onRow) {
     }
   }
 
-  // Flush any trailing content
   if (pendingCR) endRow()
   else if (field !== '' || row.length > 0) endRow()
 }

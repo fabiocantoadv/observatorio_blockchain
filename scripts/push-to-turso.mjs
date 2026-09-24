@@ -1,12 +1,3 @@
-// Pushes the local observatorio.sql (schema + data) into a Turso database.
-//
-// Prereqs: set the target credentials as environment variables, then run:
-//   TURSO_DATABASE_URL=libsql://<db>.turso.io TURSO_AUTH_TOKEN=<token> \
-//     node scripts/push-to-turso.mjs
-//
-// It recreates every table on the remote and copies all rows. Safe to re-run
-// (tables are dropped and rebuilt). Reads the local file with better-sqlite3.
-
 import Database from 'better-sqlite3'
 import { createClient } from '@libsql/client'
 import { fileURLToPath } from 'node:url'
@@ -23,7 +14,6 @@ const localPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'da
 const local = new Database(localPath, { readonly: true, fileMustExist: true })
 const remote = createClient({ url, authToken })
 
-// Table -> CREATE statement (must match scripts/build-database.mjs).
 const schema = {
   metadados: `CREATE TABLE metadados (chave TEXT PRIMARY KEY, valor TEXT NOT NULL)`,
   usuarios: `CREATE TABLE usuarios (username TEXT PRIMARY KEY, senha_hash TEXT NOT NULL)`,
@@ -60,7 +50,6 @@ for (const table of order) {
   const placeholders = `(${cols.map(() => '?').join(', ')})`
   const insertSql = `INSERT INTO ${table} (${cols.join(', ')}) VALUES ${placeholders}`
 
-  // Batch inserts to avoid huge single requests.
   for (const batch of chunk(rows, 500)) {
     const stmts = batch.map((r) => ({ sql: insertSql, args: cols.map((c) => r[c]) }))
     await remote.batch(stmts, 'write')

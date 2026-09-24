@@ -1,7 +1,3 @@
-// One-off migration: add the usuarios table to an existing observatorio.sql
-// (used because the source CSVs are no longer present to run a full rebuild).
-// Safe to run multiple times.
-
 import Database from 'better-sqlite3'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'

@@ -1,8 +1,3 @@
-// Small password hashing helper using Node's built-in scrypt (no dependencies).
-// Format stored in the database: "scrypt$<saltHex>$<hashHex>".
-//
-// Lives inside api/lib so it is bundled with the serverless functions.
-
 import { scryptSync, randomBytes, timingSafeEqual } from 'node:crypto'
 
 const KEYLEN = 64

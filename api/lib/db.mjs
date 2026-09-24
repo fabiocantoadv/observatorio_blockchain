@@ -1,15 +1,3 @@
-// Async data layer backed by libSQL (@libsql/client).
-//
-// Connection target:
-//   - Turso (production/serverless): set TURSO_DATABASE_URL + TURSO_AUTH_TOKEN
-//   - Local file (fallback): file:<repo>/src/data/observatorio.sql
-//
-// This single async layer works both in serverless (Turso over HTTP) and
-// locally against the SQLite file, replacing the native better-sqlite3 module
-// that fails to run on Vercel.
-//
-// Tables: publicacoes, keywords_publicacao, patentes, metadados, usuarios.
-
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { verifyPassword } from './password.mjs'
@@ -23,12 +11,9 @@ async function db() {
   const url = process.env.TURSO_DATABASE_URL
   clientPromise = (async () => {
     if (url) {
-      // Serverless/edge: the /web entry talks to Turso over HTTP with no native
-      // dependencies (safe to bundle on Vercel).
       const { createClient } = await import('@libsql/client/web')
       return createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN })
     }
-    // Local: the default entry supports the file: URL scheme.
     const { createClient } = await import('@libsql/client')
     return createClient({ url: `file:${localFile.replace(/\\/g, '/')}` })
   })()
@@ -102,8 +87,6 @@ async function computeSnapshot() {
   }
 }
 
-// Returns the dashboard snapshot. Admin-published edits (snapshot_override)
-// take precedence; otherwise it is computed live from the base tables.
 export async function buildSnapshot() {
   if (cached) return cached
   const override = await readMeta('snapshot_override', null)
@@ -121,7 +104,6 @@ export async function verifyUser(username, password) {
   }
 }
 
-// Persists an admin-edited snapshot back into the database (metadados table).
 export async function saveSnapshot(data) {
   const upsert = (chave, valor) => ({
     sql: 'INSERT INTO metadados (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor',

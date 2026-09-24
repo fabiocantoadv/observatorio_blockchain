@@ -6,8 +6,6 @@ import { ProfileModal } from './components/ProfileModal'
 
 const defaultProfile = { name: 'Administrador', initials: 'AD', photo: '' }
 
-// Empty bootstrap state. The real data is loaded from /api/data (backed by
-// observatorio.sql) as soon as the app mounts.
 const emptyData = {
   profile: defaultProfile,
   source: { name: '', url: '#', dashboardUrl: '#', description: '', snapshot: '' },

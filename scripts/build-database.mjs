@@ -1,19 +1,3 @@
-// Ingests the three source CSVs into a single SQLite database that feeds the
-// dashboard. This database is the single source of truth: chart data lives in
-// the publicacoes/keywords_publicacao/patentes tables, and the dashboard's
-// profile/source config lives in the metadados key/value table.
-//
-// Usage: npm run build:data
-//
-// Output:
-//   src/data/observatorio.sql       -> normalized SQLite database (binary)
-//
-// Note: the database file uses the .sql extension per project convention. It is
-// still a regular SQLite binary — open it with any SQLite client to run
-// SELECT/INSERT/UPDATE queries.
-//
-// Re-running is idempotent: the database tables are dropped and rebuilt.
-
 import Database from 'better-sqlite3'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -31,11 +15,9 @@ const files = {
   patentes: join(root, 'patentes_blockchain_GooglePatents_INPI_IBICT_fulldata_set_2026.csv'),
 }
 
-// --- Type mapping -----------------------------------------------------------
-// Maps raw source document types to the dashboard's category vocabulary.
 const TYPE_LABEL = {
   article: 'Artigo',
-  '': 'Artigo', // untyped OpenAlex works are overwhelmingly journal articles
+  '': 'Artigo',
   'book-chapter': 'Capítulo de livro',
   book: 'Livro',
   masterThesis: 'Dissertação',
@@ -43,7 +25,6 @@ const TYPE_LABEL = {
   doctoralThesis: 'Tese',
 }
 
-// Keyword theme grouping for the bar chart colours.
 const KEYWORD_GROUPS = [
   ['Tecnologia', '#4dd4bd', ['smart contract', 'contratos inteligentes', 'ethereum', 'hyperledger', 'distributed ledger', 'consenso', 'consensus', 'immutability', 'imutabilidade', 'solidity', 'nft', 'iot', 'internet das coisas', 'technology', 'tecnologia', 'blockchain technology']],
   ['Aplicações', '#7e8cff', ['supply chain', 'cadeia de suprimentos', 'traceability', 'rastreabilidade', 'saúde', 'health', 'logística', 'votação', 'identidade', 'educação']],
@@ -68,16 +49,12 @@ function cleanYear(value) {
   return year
 }
 
-// Skip generic/noise keywords that don't help the reader.
 const KEYWORD_STOPLIST = new Set([
   'blockchain', 'blockchains', 'blockchains (base de dados)', 'blockchains (databases)',
   'não informado pela instituição', 'nao informado pela instituicao', 'tecnologia blockchain',
 ])
 
 async function main() {
-  // The source CSVs are the input for a full rebuild. They are not shipped in
-  // the repository (the generated observatorio.sql already holds every record).
-  // Place the three CSV files back in the project root to rebuild from scratch.
   const missing = Object.entries(files).filter(([, path]) => !existsSync(path))
   if (missing.length) {
     console.error('CSVs de origem não encontrados na raiz do projeto:')
@@ -87,10 +64,8 @@ async function main() {
     process.exit(1)
   }
 
-  console.log('Reading CSVs and building SQLite database…')
+  console.log('Lendo CSVs e construindo o banco SQLite…')
 
-  // Preserve profile/source and admin users from a previous build before the
-  // tables are dropped and recreated.
   const previousMeta = {}
   let previousUsers = []
   if (existsSync(dbPath)) {
@@ -99,12 +74,12 @@ async function main() {
       const rows = old.prepare('SELECT chave, valor FROM metadados').all()
       for (const r of rows) previousMeta[r.chave] = JSON.parse(r.valor)
       old.close()
-    } catch { /* no metadata table yet — use defaults */ }
+    } catch { /* sem tabela metadados */ }
     try {
       const old = new Database(dbPath, { readonly: true })
       previousUsers = old.prepare('SELECT username, senha_hash FROM usuarios').all()
       old.close()
-    } catch { /* no usuarios table yet — seed default */ }
+    } catch { /* sem tabela usuarios */ }
   }
 
   const db = new Database(dbPath)
@@ -117,15 +92,11 @@ async function main() {
     DROP TABLE IF EXISTS metadados;
     DROP TABLE IF EXISTS usuarios;
 
-    -- Key/value store for non-tabular dashboard config (profile, source).
-    -- Values are JSON strings. This makes observatorio.sql the single source
-    -- of truth: no external JSON file is required.
     CREATE TABLE metadados (
       chave TEXT PRIMARY KEY,
       valor TEXT NOT NULL
     );
 
-    -- Admin users. Passwords are hashed (scrypt), never stored in plain text.
     CREATE TABLE usuarios (
       username TEXT PRIMARY KEY,
       senha_hash TEXT NOT NULL
@@ -133,11 +104,11 @@ async function main() {
 
     CREATE TABLE publicacoes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      fonte TEXT NOT NULL,          -- 'openalex' | 'oasisbr'
+      fonte TEXT NOT NULL,
       external_id TEXT,
       titulo TEXT,
       tipo_original TEXT,
-      tipo TEXT,                    -- normalized dashboard category
+      tipo TEXT,
       ano INTEGER,
       doi TEXT,
       autores TEXT,
@@ -180,8 +151,6 @@ async function main() {
     VALUES (@numero_pedido, @titulo, @titular, @pais_titular, @data_deposito, @ano, @resumo)
   `)
 
-  // Parse CSVs into memory first (async), then insert inside synchronous
-  // transactions — better-sqlite3 transactions cannot be async.
   const openalexRows = []
   await parseCsvFile(files.openalex, (o) => openalexRows.push(o))
   const oasisbrRows = []
@@ -264,10 +233,6 @@ async function main() {
   console.log(`  publicações oasisbr:  ${oasisbrRows.length}`)
   console.log(`  patentes:             ${patentRows.length}`)
 
-  // --- Metadata (profile/source) -------------------------------------------
-  // Stored inside the database so observatorio.sql is the single source of
-  // truth. Previous values (e.g. edited through the admin panel) are preserved
-  // across rebuilds.
   const insertMeta = db.prepare(`INSERT INTO metadados (chave, valor) VALUES (?, ?)`)
   insertMeta.run('profile', JSON.stringify(previousMeta.profile || {
     name: 'Administrador', initials: 'AD', photo: '',
@@ -280,9 +245,6 @@ async function main() {
     snapshot: 'Consolidação de setembro/2026 a partir das bases OpenAlex, OASISbr e de patentes.',
   }))
 
-  // --- Admin users ---------------------------------------------------------
-  // Preserve users from a previous build; otherwise seed a default admin.
-  // The default password can be overridden with SEED_ADMIN_PASSWORD.
   const insertUser = db.prepare(`INSERT INTO usuarios (username, senha_hash) VALUES (?, ?)`)
   if (previousUsers.length) {
     for (const u of previousUsers) insertUser.run(u.username, u.senha_hash)
@@ -293,18 +255,17 @@ async function main() {
     console.log(`  usuário admin semeado: ${seedUser}`)
   }
 
-  // --- Report --------------------------------------------------------------
   const documentTypes = db.prepare(`SELECT tipo, COUNT(*) AS count FROM publicacoes GROUP BY tipo ORDER BY count DESC`).all()
   const yearCount = db.prepare(`SELECT COUNT(DISTINCT ano) AS n FROM publicacoes WHERE ano IS NOT NULL`).get().n
   const totalPatents = db.prepare(`SELECT COUNT(*) AS n FROM patentes`).get().n
 
   db.close()
 
-  console.log('\nStored in observatorio.sql:')
-  console.log('  documentTypes:', documentTypes.map((d) => `${d.tipo}=${d.count}`).join(', '))
-  console.log('  years:', yearCount, 'buckets')
-  console.log('  patents total:', totalPatents)
-  console.log('\nDone.')
+  console.log('\nGravado em observatorio.sql:')
+  console.log('  tipos:', documentTypes.map((d) => `${d.tipo}=${d.count}`).join(', '))
+  console.log('  anos:', yearCount)
+  console.log('  patentes:', totalPatents)
+  console.log('\nConcluído.')
 }
 
 main().catch((err) => {
