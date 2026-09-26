@@ -236,13 +236,13 @@ export default function App() {
   return <main className="app-shell">
     <header className="site-header">
       <div className="site-header-inner">
-        <a className="brand" href="#inicio" aria-label="Observatório Blockchain">
+        <a className="brand" href="#inicio" aria-label="Observatório Blockchain — voltar à visão geral" onClick={(event) => { event.preventDefault(); navigate('Visão geral') }}>
           <span className="brand-mark"><i></i><i></i><i></i></span>
           <span>observatório<br/><b>blockchain</b></span>
         </a>
         <nav aria-label="Navegação do dashboard">
           {[
-            ['Visão geral', 'overview'], ['Evolução', 'trend'], ['Publicações', 'library'], ['Sobre os dados', 'info'], ['Administração', 'admin']
+            ['Sobre os dados', 'info'], ['Administração', 'admin']
           ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} aria-current={activePage === label ? 'page' : undefined} onClick={() => selectPage(label)}>
             <NavIcon name={icon}/><span>{label}</span>
           </button>)}
