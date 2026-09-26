@@ -19,7 +19,7 @@ function query(params) {
 
 function Panel({ label, title, chip, note, children }) {
   return <article className="panel">
-    <div className="panel-heading"><div><p className="section-label">{label}</p><h2>{title}</h2></div>{chip && <span className="data-chip">{chip}</span>}</div>
+    <div className="panel-heading"><div><h2>{title}</h2></div>{chip && <span className="data-chip">{chip}</span>}</div>
     {children}
     {note && <p className="panel-note">{note}</p>}
   </article>

@@ -61,7 +61,7 @@ function FrequencyLegend() {
 }
 function Panel({ label, title, chip, note, className = '', children }) {
   return <article className={`panel ${className}`}>
-    <div className="panel-heading"><div><p className="section-label">{label}</p><h2>{title}</h2></div>{chip && <span className="data-chip">{chip}</span>}</div>
+    <div className="panel-heading"><div><h2>{title}</h2></div>{chip && <span className="data-chip">{chip}</span>}</div>
     {children}
     {note && <p className="panel-note">{note}</p>}
   </article>
@@ -289,7 +289,6 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
 
     <section className="detail-grid narrow-left publications-row">
       <article className="panel network-panel">
-        <p className="section-label">COLABORAÇÃO</p>
         <h2>Rede de pesquisadores</h2>
         <p className="panel-note">Mapa de coautoria no VOSviewer, o mesmo publicado no painel Kibana do observatório.</p>
         <a className="network-link" href={NETWORK_URL} target="_blank" rel="noreferrer">Abrir a rede <span>↗</span></a>

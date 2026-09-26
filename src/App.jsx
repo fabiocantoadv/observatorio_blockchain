@@ -276,7 +276,7 @@ export default function App() {
       {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? activeTab === 'Patentes' ? <div id="dashboard-content"><PatentSections ano={patentYear} pais={patentCountry} onSummary={setPatentSummary} /></div> : <div id="dashboard-content">
       <section className="main-grid">
         <article className="panel composition-panel">
-          <div className="panel-heading"><div><p className="section-label">DISTRIBUIÇÃO</p><h2>Tipos de documentos</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
+          <div className="panel-heading"><div><h2>Tipos de documentos</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
           <div className="donut-layout">
             <div className="donut-wrap"><VegaChart spec={donutSpec}/><div className="donut-total"><strong>{compact(selectedCount)}</strong><span>documentos</span></div></div>
             <ul className="legend-list">
@@ -285,7 +285,7 @@ export default function App() {
           </div>
         </article>
         <article className="panel trend-panel">
-          <div className="panel-heading"><div><p className="section-label">TENDÊNCIA</p><h2>Publicações por ano</h2></div>
+          <div className="panel-heading"><div><h2>Publicações por ano</h2></div>
             <div className="sort-toggle" role="group" aria-label="Ordenação das colunas">
               {[['cronologica', 'Cronológica'], ['crescente', 'Crescente']].map(([value, label]) => <button key={value} className={yearSort === value ? 'active' : ''} aria-pressed={yearSort === value} onClick={() => setYearSort(value)}>{label}</button>)}
             </div>
