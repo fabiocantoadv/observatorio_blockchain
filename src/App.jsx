@@ -53,9 +53,6 @@ export default function App() {
   const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
   const palette = documentTypes.map((item) => item.color)
   const leadKeyword = keywords[0] || { keyword: '—', documents: 0 }
-  const articleShare = totalDocuments
-    ? ((documentTypes.find((item) => item.type === 'Artigo')?.count || 0) / totalDocuments) * 100
-    : 0
 
   useEffect(() => {
     let active = true
@@ -172,7 +169,7 @@ export default function App() {
     mark: { type: 'bar', cornerRadiusEnd: 6, height: 18, stroke: '#0a0a8c', strokeOpacity: 0.25, strokeWidth: 1 },
     encoding: {
       y: { field: 'keyword', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#3b4175', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
-      x: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false } },
+      x: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false, tickCount: 8 } },
       color: { field: 'group', type: 'nominal', scale: { domain: ['Tecnologia', 'Aplicações', 'Dados', 'Governança', 'Economia'], range: ['#001eff', '#00f0dc', '#ffff00', '#6678ff', '#0a0a8c'] }, legend: null },
       tooltip: [{ field: 'keyword', title: 'Palavra-chave' }, { field: 'documents', title: 'Documentos' }, { field: 'group', title: 'Tema' }]
     },
@@ -188,7 +185,7 @@ export default function App() {
     mark: { type: 'bar', cornerRadiusEnd: 6, height: 18, color: '#001eff' },
     encoding: {
       y: { field: 'country', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#3b4175', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
-      x: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false } },
+      x: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false, tickCount: 8 } },
       tooltip: [{ field: 'country', title: 'País do titular' }, { field: 'count', title: 'Patentes' }]
     },
     config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }
@@ -306,30 +303,17 @@ export default function App() {
         </article>
       </section>
 
-      <section className="lower-grid">
+      <section className="lower-grid single">
         <article className="panel keywords-panel">
           <div className="panel-heading"><div><p className="section-label">ASSUNTOS</p><h2>Palavras-chave em destaque</h2></div><button className="more" aria-label="Mais opções">•••</button></div>
           <VegaChart spec={keywordSpec}/>
         </article>
-        <article className="panel insight-panel">
-          <p className="section-label">LEITURA RÁPIDA</p>
-          <h2>Produção científica em blockchain</h2>
-          <p className="insight-copy">Artigos concentram a maior parte da base, enquanto a produção anual ganha escala a partir de 2018.{patents ? ` Em paralelo, ${compact(patents.total)} patentes foram mapeadas.` : ''}</p>
-          <div className="insight-stat"><span>{articleShare.toFixed(1).replace('.', ',')}%</span><p>dos registros são artigos científicos.</p></div>
-          <a href={source.url} target="_blank" rel="noreferrer">Ver metodologia e fonte <span>→</span></a>
-        </article>
       </section>
 
-      {patents && <section className="lower-grid">
+      {patents && <section className="lower-grid single">
         <article className="panel keywords-panel">
           <div className="panel-heading"><div><p className="section-label">PATENTES</p><h2>Depósitos por país do titular</h2></div><span className="data-chip">{compact(patents.total)} patentes</span></div>
           <VegaChart spec={patentCountrySpec}/>
-        </article>
-        <article className="panel insight-panel">
-          <p className="section-label">PROPRIEDADE INTELECTUAL</p>
-          <h2>Patentes em blockchain</h2>
-          <p className="insight-copy">Base de patentes consolidada de Google Patents, INPI e IBICT, com o Brasil liderando os depósitos entre os titulares mapeados.</p>
-          <div className="insight-stat"><span>{compact(patents.total)}</span><p>patentes mapeadas na base consolidada.</p></div>
         </article>
       </section>}</div> : <section className="about-panel" id="dashboard-content">
         <p className="section-label">TRANSPARÊNCIA</p>

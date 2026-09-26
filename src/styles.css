@@ -93,3 +93,5 @@ footer { color: var(--muted); }
 .save-button,.login-submit { border-color: var(--c2); background: var(--c2); }
 .login-icon,.profile-preview { background: linear-gradient(135deg, var(--c1), var(--c2)); }.profile-preview { border-color: var(--c3-soft); }
 .password-toggle { color: var(--c2); background: var(--c2-soft); }
+
+.lower-grid.single { grid-template-columns: 1fr; }
