@@ -38,6 +38,14 @@ Apesar da extensão `.sql`, o arquivo é um banco SQLite binário. Abra com qual
 sqlite3 src/data/observatorio.sql "SELECT tipo, COUNT(*) FROM publicacoes GROUP BY tipo;"
 ```
 
+### ORCID dos autores
+
+A tabela `autores_orcid` guarda o ORCID dos autores das publicações do OpenAlex. Ela é preenchida consultando a API do OpenAlex pelos IDs das obras já presentes no banco:
+
+```bash
+npm run fetch:orcid
+```
+
 ### Reconstruir a partir dos CSVs
 
 Os CSVs de origem não são versionados. Para reimportar do zero, coloque os três arquivos na raiz e rode `npm run build:data`:

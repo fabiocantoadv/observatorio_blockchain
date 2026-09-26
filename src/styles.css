@@ -219,3 +219,9 @@ footer { color: var(--muted); }
 .treemap-wrap { min-height:560px; }
 .full-width { width:100%; }
 @media (max-width:720px) { .panel-stack { gap:11px; } .treemap-wrap { min-height:0; } }
+
+/* ORCID na tabela de autores */
+.orcid-link { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; color:var(--ink); text-decoration:none; font-family:'DM Mono', monospace; font-size:11px; }
+.orcid-link:hover { color:var(--c2); text-decoration:underline; }
+.orcid-badge { display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; background:#a6ce39; color:#fff; font:700 8px/1 Arial, sans-serif; letter-spacing:0; }
+.data-table .muted { color:#8a8fb5; }

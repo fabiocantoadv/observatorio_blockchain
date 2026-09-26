@@ -80,6 +80,13 @@ function cleanKeyword(raw) {
 }
 
 let recordsPromise = null
+// ORCID por nome de autor (tabela autores_orcid, preenchida por scripts/fetch-orcid.mjs a partir
+// da API do OpenAlex). Chave: nome em minúsculas com espaços normalizados.
+let orcidByName = new Map()
+
+function authorKey(name) {
+  return String(name).replace(/\s+/g, ' ').trim().toLowerCase()
+}
 
 async function loadRecords() {
   if (recordsPromise) return recordsPromise
@@ -89,6 +96,12 @@ async function loadRecords() {
       'SELECT id, fonte, titulo, tipo, ano, doi, autores, instituicoes, paises, idioma FROM publicacoes'
     )
     const kws = await conn.execute('SELECT publicacao_id, keyword, grupo FROM keywords_publicacao')
+    try {
+      const orcids = await conn.execute('SELECT autor, orcid FROM autores_orcid')
+      orcidByName = new Map(orcids.rows.map((r) => [authorKey(r.autor), String(r.orcid)]))
+    } catch {
+      orcidByName = new Map() // tabela ainda não criada
+    }
     const kwByPub = new Map()
     for (const r of kws.rows) {
       const id = Number(r.publicacao_id)
@@ -168,7 +181,8 @@ export async function buildInsights(filters) {
       keywords: withKeywords.length,
     },
     institutions: countBy(records, (r) => r.institutions).map(({ label, documents }) => ({ name: label, documents })),
-    authors: countBy(records, (r) => r.authors).map(({ label, documents }) => ({ name: label, documents })),
+    authors: countBy(records, (r) => r.authors).map(({ label, documents }) => ({ name: label, documents, orcid: orcidByName.get(authorKey(label)) || '' })),
+    authorsWithOrcid: countBy(records, (r) => r.authors).filter(({ label }) => orcidByName.has(authorKey(label))).length,
     countries: countBy(withCountry, (r) => r.countries, 10).map(({ label, documents }) => ({ code: label, documents, share: documents / withCountry.length })),
     languages: [
       ...countBy(withLanguage, (r) => r.languages).map(({ label, documents }) => ({ code: label, documents })),

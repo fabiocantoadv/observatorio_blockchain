@@ -25,9 +25,10 @@ const schema = {
   patentes: `CREATE TABLE patentes (
     id INTEGER PRIMARY KEY AUTOINCREMENT, numero_pedido TEXT, titulo TEXT, titular TEXT,
     pais_titular TEXT, data_deposito TEXT, ano INTEGER, resumo TEXT)`,
+  autores_orcid: `CREATE TABLE autores_orcid (autor TEXT PRIMARY KEY, orcid TEXT NOT NULL)`,
 }
 
-const order = ['metadados', 'usuarios', 'publicacoes', 'keywords_publicacao', 'patentes']
+const order = ['metadados', 'usuarios', 'publicacoes', 'keywords_publicacao', 'patentes', 'autores_orcid']
 
 function chunk(arr, size) {
   const out = []

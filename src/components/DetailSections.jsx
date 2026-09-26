@@ -273,8 +273,17 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
       <Panel title="Afiliações" chip={`${fmt(data.institutions.length)} instituições`}>
         <DataTable columns={[{ key: 'name', label: 'Afiliação' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.institutions} exportName="afiliacoes.csv" />
       </Panel>
-      <Panel title="Autores" chip={`${fmt(data.authors.length)} autores`} note="Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.">
-        <DataTable columns={[{ key: 'name', label: 'Autor' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.authors} exportName="autores.csv" />
+      <Panel title="Autores" chip={`${fmt(data.authors.length)} autores`} note={`ORCID de ${fmt(data.authorsWithOrcid || 0)} autores, obtido no OpenAlex (só há ORCID para autores de registros do OpenAlex). Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.`}>
+        <DataTable
+          columns={[
+            { key: 'name', label: 'Autor' },
+            { key: 'orcid', label: 'ORCID', render: (row) => row.orcid ? <a className="orcid-link" href={`https://orcid.org/${row.orcid}`} target="_blank" rel="noreferrer" title={`Perfil ORCID de ${row.name}`}><span className="orcid-badge" aria-hidden="true">iD</span>{row.orcid}</a> : <span className="muted">—</span> },
+            { key: 'documents', label: 'Documentos', align: 'right' },
+          ]}
+          rows={data.authors}
+          searchKeys={['name', 'orcid']}
+          exportName="autores.csv"
+        />
       </Panel>
     </section>
 

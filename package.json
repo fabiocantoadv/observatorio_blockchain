@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:data": "node scripts/build-database.mjs",
-    "serve": "node scripts/serve-local.mjs"
+    "serve": "node scripts/serve-local.mjs",
+    "fetch:orcid": "node scripts/fetch-orcid.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
