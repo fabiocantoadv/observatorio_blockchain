@@ -49,6 +49,7 @@ export default function App() {
   const [selectedType, setSelectedType] = useState('Todos')
   const [selectedYear, setSelectedYear] = useState('Todos')
   const [activeTab, setActiveTab] = useState('Publicações')
+  const [yearSort, setYearSort] = useState('cronologica')
   const [patentYear, setPatentYear] = useState('Todos')
   const [patentCountry, setPatentCountry] = useState('Todos')
   const [patentOptions, setPatentOptions] = useState({ years: [], countries: [] })
@@ -151,27 +152,23 @@ export default function App() {
     $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
     background: 'transparent',
     width: 'container',
-    height: 245,
+    height: 260,
     data: { values: filteredYears },
-    layer: [
-      {
-        mark: { type: 'area', interpolate: 'monotone', color: '#00f0dc', opacity: 0.22 },
-        encoding: {
-          x: { field: 'year', type: 'ordinal', axis: { title: null, labelColor: '#5c6390', labelAngle: 0, labelPadding: 10, domain: false, tickColor: '#cfd3ea' } },
-          y: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, tickColor: 'transparent' }, scale: { zero: true } }
-        }
+    encoding: {
+      x: {
+        field: 'year', type: 'ordinal',
+        sort: yearSort === 'crescente' ? { field: 'documents', order: 'ascending' } : { field: 'year', order: 'ascending' },
+        axis: { title: null, labelColor: '#5c6390', labelAngle: 0, labelPadding: 8, labelOverlap: true, domain: false, ticks: false }
       },
-      {
-        mark: { type: 'line', interpolate: 'monotone', color: '#001eff', strokeWidth: 3, point: { filled: true, fill: '#ffffff', stroke: '#001eff', size: 60, strokeWidth: 2 } },
-        encoding: {
-          x: { field: 'year', type: 'ordinal' },
-          y: { field: 'documents', type: 'quantitative' },
-          tooltip: [{ field: 'year', title: 'Ano' }, { field: 'documents', title: 'Documentos' }]
-        }
-      }
+      y: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false, tickCount: 6 }, scale: { zero: true } },
+      tooltip: [{ field: 'year', title: 'Ano' }, { field: 'documents', title: 'Documentos', format: ',' }]
+    },
+    layer: [
+      { mark: { type: 'bar', color: '#001eff', cornerRadiusEnd: 4, width: { band: 0.72 } } },
+      { mark: { type: 'text', dy: -7, color: '#0a0a8c', fontSize: 10, fontWeight: 700, font: 'Manrope, Arial, sans-serif' }, encoding: { text: { field: 'documents', type: 'quantitative', format: ',' } } }
     ],
-    config: { axis: { labelFont: 'Inter', titleFont: 'Inter' }, view: { stroke: null } }
-  }), [filteredYears])
+    config: { axis: { labelFont: 'Manrope, Arial, sans-serif' }, view: { stroke: null } }
+  }), [filteredYears, yearSort])
 
   const keywordSpec = useMemo(() => ({
     $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
@@ -301,7 +298,7 @@ export default function App() {
       {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? activeTab === 'Patentes' ? <div id="dashboard-content"><PatentSections ano={patentYear} pais={patentCountry} /></div> : <div id="dashboard-content">
       <section className="main-grid">
         <article className="panel composition-panel">
-          <div className="panel-heading"><div><p className="section-label">DISTRIBUIÇÃO</p><h2>Composição documental</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
+          <div className="panel-heading"><div><p className="section-label">DISTRIBUIÇÃO</p><h2>Tipos de documentos</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
           <div className="donut-layout">
             <div className="donut-wrap"><VegaChart spec={donutSpec}/><div className="donut-total"><strong>{compact(selectedCount)}</strong><span>documentos</span></div></div>
             <ul className="legend-list">
@@ -310,9 +307,13 @@ export default function App() {
           </div>
         </article>
         <article className="panel trend-panel">
-          <div className="panel-heading"><div><p className="section-label">TENDÊNCIA</p><h2>Evolução anual</h2></div><span className="trend-change">↗ crescimento</span></div>
+          <div className="panel-heading"><div><p className="section-label">TENDÊNCIA</p><h2>Publicações por ano</h2></div>
+            <div className="sort-toggle" role="group" aria-label="Ordenação das colunas">
+              {[['cronologica', 'Cronológica'], ['crescente', 'Crescente']].map(([value, label]) => <button key={value} className={yearSort === value ? 'active' : ''} aria-pressed={yearSort === value} onClick={() => setYearSort(value)}>{label}</button>)}
+            </div>
+          </div>
           <VegaChart spec={trendSpec}/>
-          <p className="panel-note">Publicações por ano, conforme o recorte disponível no painel.</p>
+          <p className="panel-note">Número de publicações por ano de publicação. {yearSort === 'crescente' ? 'Colunas ordenadas do menor para o maior valor.' : 'Colunas em ordem cronológica.'}</p>
         </article>
       </section>
 

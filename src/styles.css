@@ -183,3 +183,9 @@ footer { color: var(--muted); }
 .data-table details[open] summary:before { content:'▾'; }
 .data-table .abstract { margin:8px 0 2px; font-weight:400; color:#454b7a; line-height:1.55; }
 @media (max-width:720px) { .data-tabs { grid-column:1/-1; justify-self:stretch; } .data-tabs button { flex:1; } .patent-sections { gap:11px; } }
+
+/* Alternador de ordenação (gráfico de colunas por ano) */
+.sort-toggle { display:inline-flex; gap:2px; padding:3px; border-radius:99px; background:var(--c1-soft); border:1px solid var(--line); }
+.sort-toggle button { border:0; background:transparent; color:var(--muted); font-size:10px; font-weight:800; padding:5px 10px; border-radius:99px; }
+.sort-toggle button:hover { color:var(--ink); }
+.sort-toggle button.active { background:var(--c1); color:#fff; }
