@@ -3,7 +3,7 @@ import { VegaChart } from './components/VegaChart'
 import { AdminPanel } from './components/AdminPanel'
 import { AdminLoginModal } from './components/AdminLoginModal'
 import { ProfileModal } from './components/ProfileModal'
-import { DetailSections, GroupLegend, GROUP_COLORS } from './components/DetailSections'
+import { DetailSections } from './components/DetailSections'
 import { PatentSections } from './components/PatentSections'
 
 const DATA_TABS = ['Publicações', 'Patentes']
@@ -121,10 +121,6 @@ export default function App() {
   const filteredYears = selectedYear === 'Todos'
     ? publicationsByYear
     : publicationsByYear.filter((item) => item.year === Number(selectedYear))
-  const filteredKeywordData = selectedType === 'Todos' ? keywords : keywords.map((item) => ({
-    ...item,
-    documents: Math.max(1, Math.round(item.documents * (selectedCount / totalDocuments)))
-  }))
 
   const donutValues = useMemo(() => filteredTypes.map((item) => ({
     ...item,
@@ -172,21 +168,6 @@ export default function App() {
     config: { axis: { labelFont: 'Manrope, Arial, sans-serif' }, view: { stroke: null } }
   }), [filteredYears, yearSort])
 
-  const keywordSpec = useMemo(() => ({
-    $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
-    background: 'transparent',
-    width: 'container',
-    height: 275,
-    data: { values: filteredKeywordData },
-    mark: { type: 'bar', cornerRadiusEnd: 6, height: 18, stroke: '#0a0a8c', strokeOpacity: 0.25, strokeWidth: 1 },
-    encoding: {
-      y: { field: 'keyword', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#3b4175', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
-      x: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false, tickCount: 8 } },
-      color: { field: 'group', type: 'nominal', scale: { domain: Object.keys(GROUP_COLORS), range: Object.values(GROUP_COLORS).map((c) => c.fill) }, legend: null },
-      tooltip: [{ field: 'keyword', title: 'Palavra-chave' }, { field: 'documents', title: 'Documentos' }, { field: 'group', title: 'Tema' }]
-    },
-    config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }
-  }), [filteredKeywordData])
 
   const typeRows = filteredTypes.map((item) => ({
     ...item,
@@ -315,13 +296,6 @@ export default function App() {
         </article>
       </section>
 
-      <section className="lower-grid single">
-        <article className="panel keywords-panel">
-          <div className="panel-heading"><div><p className="section-label">ASSUNTOS</p><h2>Palavras-chave em destaque</h2></div><button className="more" aria-label="Mais opções">•••</button></div>
-          <GroupLegend/>
-          <VegaChart spec={keywordSpec}/>
-        </article>
-      </section>
 
       <DetailSections selectedType={selectedType} selectedYear={selectedYear} onSummary={setPubSummary} /></div> : <section className="about-panel" id="dashboard-content">
         <p className="section-label">TRANSPARÊNCIA</p>
