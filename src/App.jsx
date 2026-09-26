@@ -59,7 +59,6 @@ export default function App() {
   const { documentTypes, keywords, publicationsByYear, source } = data
   const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
   const palette = documentTypes.map((item) => item.color)
-  const leadKeyword = keywords[0] || { keyword: '—', documents: 0 }
 
   useEffect(() => {
     let active = true
@@ -119,8 +118,6 @@ export default function App() {
   const filteredYears = selectedYear === 'Todos'
     ? publicationsByYear
     : publicationsByYear.filter((item) => item.year === Number(selectedYear))
-  const totalInSeries = publicationsByYear.reduce((sum, item) => sum + item.documents, 0)
-  const peak = publicationsByYear.reduce((current, item) => item.documents > current.documents ? item : current, { year: '—', documents: 0 })
   const filteredKeywordData = selectedType === 'Todos' ? keywords : keywords.map((item) => ({
     ...item,
     documents: Math.max(1, Math.round(item.documents * (selectedCount / totalDocuments)))
@@ -299,9 +296,6 @@ export default function App() {
 
       {activePage !== 'Sobre os dados' && activePage !== 'Administração' && activeTab === 'Publicações' && <section className="metrics" aria-label="Resumo">
         <MetricCard label="Documentos mapeados" value={compact(selectedCount)} detail={selectedType === 'Todos' ? 'Base consolidada' : `Seleção: ${selectedType}`} />
-        <MetricCard label="Pico de produção" value={compact(peak.documents)} detail={`${peak.year} · documentos publicados`} accent="blue" />
-        <MetricCard label="Palavra-chave líder" value={leadKeyword.keyword} detail={`${compact(leadKeyword.documents)} documentos indexados`} accent="gold" />
-        <MetricCard label="Período coberto" value={publicationsByYear.length ? `${publicationsByYear[0].year}—${publicationsByYear.at(-1).year}` : '—'} detail={`${compact(totalInSeries)} documentos na série`} accent="pink" />
       </section>}
 
       {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? activeTab === 'Patentes' ? <div id="dashboard-content"><PatentSections ano={patentYear} pais={patentCountry} /></div> : <div id="dashboard-content">
