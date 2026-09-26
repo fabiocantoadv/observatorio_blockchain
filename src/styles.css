@@ -293,3 +293,7 @@ footer { color: var(--muted); }
 .pub-id .id-value { word-break:break-all; }
 .id-badge { flex:0 0 auto; font-size:9px; font-weight:800; letter-spacing:.3px; border-radius:4px; padding:2px 5px; color:#fff; background:#001eff; }
 .id-badge.hdl { background:#0a0a8c; }
+/* Idioma das publicações: modo colunas ocupa a largura do cartão */
+.language-layout.columns { justify-items:stretch; }
+.language-layout.columns .vega-chart { width:100%; }
+.language-panel .panel-heading { flex-wrap:wrap; gap:8px; }

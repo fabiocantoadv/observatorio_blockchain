@@ -74,9 +74,9 @@ function FrequencyLegend({ ramp = FREQ_RAMP }) {
     <span>Mais ocorrências</span>
   </div>
 }
-function Panel({ label, title, chip, note, className = '', onClear, children }) {
+function Panel({ label, title, chip, note, className = '', onClear, actions, children }) {
   return <article className={`panel ${className}`}>
-    <div className="panel-heading"><div><h2>{title}</h2></div>{(chip || onClear) && <div className="panel-actions">{onClear && <button type="button" className="chart-clear" onClick={onClear} title="Remover o filtro deste gráfico">× Limpar filtro</button>}{chip && <span className="data-chip">{chip}</span>}</div>}</div>
+    <div className="panel-heading"><div><h2>{title}</h2></div>{(chip || onClear || actions) && <div className="panel-actions">{onClear && <button type="button" className="chart-clear" onClick={onClear} title="Remover o filtro deste gráfico">× Limpar filtro</button>}{actions}{chip && <span className="data-chip">{chip}</span>}</div>}</div>
     {children}
     {note && <p className="panel-note">{note}</p>}
   </article>
@@ -242,7 +242,66 @@ function PublicationsTable({ filters }) {
   </div>
 }
 
-const LIGHT_FILLS = new Set(['#ffff00', '#00f0dc'])
+const LIGHT_FILLS = new Set(['#ffff00', '#00f0dc', '#cfd3ea'])
+
+// Gráfico de categorias em rosca ou colunas, com opção de mostrar os valores.
+// rows: [{ key, name, value, color, share }]; o clique devolve datum.key.
+function categoryChart(rows, { mode, showValues, selected, title, width, height, innerRadius, wrapLabels = false }) {
+  const data = rows.map((r, idx) => ({
+    ...r, idx, label: fmt(r.value),
+    ringLabel: r.share >= 0.04 ? fmt(r.value) : '',
+    labelColor: LIGHT_FILLS.has(r.color) ? '#0a0a8c' : '#ffffff',
+  }))
+  const color = { field: 'name', type: 'nominal', scale: { domain: data.map((r) => r.name), range: data.map((r) => r.color) }, legend: null }
+  const opacity = selected
+    ? { condition: { test: `datum.key == ${JSON.stringify(selected)}`, value: 1 }, value: DIM_OPACITY }
+    : { value: 1 }
+  const tooltip = [{ field: 'name', title }, { field: 'value', title: 'Documentos', format: ',' }, { field: 'share', title: '% do total', format: '.1%' }]
+  const font = 'Manrope, Arial, sans-serif'
+  if (mode === 'colunas') {
+    return {
+      $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
+      background: 'transparent', width: 'container', height: 260,
+      data: { values: data },
+      encoding: {
+        x: { field: 'name', type: 'nominal', sort: [...data].sort((a, b) => b.value - a.value).map((r) => r.name), axis: { title: null, labelColor: AXIS_MUTED, labelAngle: 0, labelPadding: 8, labelLimit: 90, domain: false, ticks: false, ...(wrapLabels ? { labelExpr: "split(datum.label, ' ')" } : {}) } },
+        y: { field: 'value', type: 'quantitative', axis: { title: null, labelColor: AXIS_MUTED, gridColor: GRID, domain: false, ticks: false, tickCount: 6, labelExpr: "replace(datum.label, ',', '.')" }, scale: { zero: true } },
+        opacity, tooltip,
+      },
+      layer: [
+        { mark: { type: 'bar', cornerRadiusEnd: 4, width: { band: 0.66 }, stroke: '#0a0a8c', strokeOpacity: 0.15, cursor: 'pointer' }, encoding: { color } },
+        ...(showValues ? [{ mark: { type: 'text', dy: -7, color: '#0a0a8c', fontSize: 11, fontWeight: 700, font, cursor: 'pointer' }, encoding: { text: { field: 'label' } } }] : []),
+      ],
+      config: { axis: { labelFont: font, labelFontSize: 11 }, view: { stroke: null } },
+    }
+  }
+  const outer = Math.min(width, height) / 2
+  return {
+    $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
+    background: 'transparent', width, height,
+    data: { values: data },
+    encoding: {
+      theta: { field: 'value', type: 'quantitative', stack: true },
+      order: { field: 'idx', type: 'quantitative' },
+      opacity, tooltip,
+    },
+    layer: [
+      { mark: { type: 'arc', innerRadius, stroke: '#ffffff', strokeWidth: 2, cursor: 'pointer' }, encoding: { color } },
+      // Valores dentro do anel; fatias muito finas (menos de 4%) ficam só na legenda.
+      ...(showValues ? [{ mark: { type: 'text', radius: (innerRadius + outer) / 2, fontSize: 11, fontWeight: 800, font, cursor: 'pointer' }, encoding: { text: { field: 'ringLabel' }, color: { field: 'labelColor', type: 'nominal', scale: null } } }] : []),
+    ],
+    view: { stroke: null },
+  }
+}
+
+function ChartControls({ values, onValues, mode, onMode }) {
+  return <>
+    <label className="chart-check"><input type="checkbox" checked={values} onChange={(e) => onValues(e.target.checked)} /> Mostrar valores</label>
+    <div className="sort-toggle" role="group" aria-label="Modelo do gráfico">
+      {[['rosca', 'Rosca'], ['colunas', 'Colunas']].map(([value, label]) => <button key={value} className={mode === value ? 'active' : ''} aria-pressed={mode === value} onClick={() => onMode(value)}>{label}</button>)}
+    </div>
+  </>
+}
 
 export function DetailSections({ filters, onFilter, onSummary }) {
   const [data, setData] = useState(null)
@@ -250,6 +309,8 @@ export function DetailSections({ filters, onFilter, onSummary }) {
   const [yearSort, setYearSort] = useState('cronologica')
   const [typeChart, setTypeChart] = useState('rosca')
   const [typeValues, setTypeValues] = useState(false)
+  const [langChart, setLangChart] = useState('rosca')
+  const [langValues, setLangValues] = useState(false)
   const filterKey = JSON.stringify(filters)
   const sel = (key) => (filters[key] && filters[key] !== 'Todos' ? String(filters[key]) : '')
 
@@ -278,38 +339,9 @@ export function DetailSections({ filters, onFilter, onSummary }) {
       ? { condition: { test: `datum[${JSON.stringify(field)}] == ${JSON.stringify(value)}`, value: 1 }, value: DIM_OPACITY }
       : { value: 1 }
     return {
-      types: typeChart === 'colunas' ? {
-        $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
-        background: 'transparent', width: 'container', height: 260,
-        data: { values: types },
-        encoding: {
-          x: { field: 'type', type: 'nominal', sort: [...types].sort((a, b) => b.count - a.count).map((t) => t.type), axis: { title: null, labelColor: AXIS_MUTED, labelAngle: 0, labelPadding: 8, labelLimit: 90, domain: false, ticks: false } },
-          y: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: AXIS_MUTED, gridColor: GRID, domain: false, ticks: false, tickCount: 6, labelExpr: "replace(datum.label, ',', '.')" }, scale: { zero: true } },
-          opacity: highlight('type', selType),
-          tooltip: [{ field: 'type', title: 'Tipo' }, { field: 'count', title: 'Documentos', format: ',' }, { field: 'share', title: '% do total', format: '.1%' }],
-        },
-        layer: [
-          { mark: { type: 'bar', cornerRadiusEnd: 4, width: { band: 0.66 }, stroke: '#0a0a8c', strokeOpacity: 0.15, cursor: 'pointer' }, encoding: { color: { field: 'type', type: 'nominal', scale: { domain: types.map((t) => t.type), range: types.map((t) => t.color) }, legend: null } } },
-          ...(typeValues ? [{ mark: { type: 'text', dy: -7, color: '#0a0a8c', fontSize: 11, fontWeight: 700, font: 'Manrope, Arial, sans-serif', cursor: 'pointer' }, encoding: { text: { field: 'label' } } }] : []),
-        ],
-        config: { axis: { labelFont: 'Manrope, Arial, sans-serif', labelFontSize: 11 }, view: { stroke: null } },
-      } : {
-        $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
-        background: 'transparent', width: 300, height: 245,
-        data: { values: types },
-        encoding: {
-          theta: { field: 'count', type: 'quantitative', stack: true },
-          order: { field: 'idx', type: 'quantitative' },
-          opacity: highlight('type', selType),
-          tooltip: [{ field: 'type', title: 'Tipo' }, { field: 'count', title: 'Documentos', format: ',' }, { field: 'share', title: '% do total', format: '.1%' }],
-        },
-        layer: [
-          { mark: { type: 'arc', innerRadius: 72, stroke: '#ffffff', strokeWidth: 2, cursor: 'pointer' }, encoding: { color: { field: 'type', type: 'nominal', scale: { domain: types.map((t) => t.type), range: types.map((t) => t.color) }, legend: null } } },
-          // Valores dentro do anel; fatias muito finas (menos de 4%) ficam só na legenda.
-          ...(typeValues ? [{ mark: { type: 'text', radius: 97, fontSize: 11, fontWeight: 800, font: 'Manrope, Arial, sans-serif', cursor: 'pointer' }, encoding: { text: { field: 'ringLabel' }, color: { field: 'labelColor', type: 'nominal', scale: null } } }] : []),
-        ],
-        view: { stroke: null },
-      },
+      types: categoryChart(types.map((t) => ({ key: t.type, name: t.type, value: t.count, color: t.color, share: t.share })), {
+        mode: typeChart, showValues: typeValues, selected: selType, title: 'Tipo', width: 300, height: 245, innerRadius: 72,
+      }),
       typeRows: types,
       years: {
         $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
@@ -333,22 +365,12 @@ export function DetailSections({ filters, onFilter, onSummary }) {
       },
       orgs: horizontalBar(orgs, { field: 'documents', label: 'name', color: '#001eff', height: BAR_ROW_HEIGHT, tooltipTitle: 'Instituição', selected: sel('instituicao') }),
       countries: horizontalBar(countries, { field: 'documents', label: 'country', color: '#0a0a8c', height: BAR_ROW_HEIGHT, tooltipTitle: 'País', shareField: 'share', selected: sel('pais'), selectField: 'code' }),
-      languages: {
-        $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
-        background: 'transparent', width: 220, height: 220,
-        data: { values: languages },
-        mark: { type: 'arc', innerRadius: 58, stroke: '#ffffff', strokeWidth: 2, cursor: 'pointer' },
-        encoding: {
-          theta: { field: 'documents', type: 'quantitative' },
-          opacity: highlight('code', selLang),
-          color: { field: 'language', type: 'nominal', scale: { domain: languages.map((l) => l.language), range: languages.map((l) => LANGUAGE_COLORS[l.code] || '#8c90b8') }, legend: null },
-          tooltip: [{ field: 'language', title: 'Idioma' }, { field: 'documents', title: 'Documentos', format: ',' }, { field: 'share', title: '% do total', format: '.1%' }],
-        },
-        view: { stroke: null },
-      },
+      languages: categoryChart(languages.map((l) => ({ key: l.code, name: l.language, value: l.documents, color: LANGUAGE_COLORS[l.code] || '#8c90b8', share: l.share })), {
+        mode: langChart, showValues: langValues, selected: selLang, title: 'Idioma', width: 220, height: 220, innerRadius: 58, wrapLabels: true,
+      }),
       languageRows: languages,
     }
-  }, [data, yearSort, typeChart, typeValues])
+  }, [data, yearSort, typeChart, typeValues, langChart, langValues])
 
   if (error) return <p className="panel-note detail-error">{error}</p>
   if (!data || !specs) return <p className="panel-note detail-loading">Carregando indicadores detalhados…</p>
@@ -374,16 +396,13 @@ export function DetailSections({ filters, onFilter, onSummary }) {
         <div className="panel-heading"><div><h2>Tipos de documentos</h2></div>
           <div className="panel-actions">
             {selType && <button type="button" className="chart-clear" onClick={clear('tipo')} title="Remover o filtro deste gráfico">× Limpar filtro</button>}
-            <label className="chart-check"><input type="checkbox" checked={typeValues} onChange={(e) => setTypeValues(e.target.checked)} /> Mostrar valores</label>
-            <div className="sort-toggle" role="group" aria-label="Modelo do gráfico">
-              {[['rosca', 'Rosca'], ['colunas', 'Colunas']].map(([value, label]) => <button key={value} className={typeChart === value ? 'active' : ''} aria-pressed={typeChart === value} onClick={() => setTypeChart(value)}>{label}</button>)}
-            </div>
+            <ChartControls values={typeValues} onValues={setTypeValues} mode={typeChart} onMode={setTypeChart} />
           </div>
         </div>
         {typeChart === 'colunas'
-          ? <div className="type-columns"><VegaChart spec={specs.types} onClick={(d) => d.type && pick('tipo')(d.type)} /><p className="panel-note">Clique numa coluna para filtrar o painel pelo tipo.</p></div>
+          ? <div className="type-columns"><VegaChart spec={specs.types} onClick={(d) => d.key && pick('tipo')(d.key)} /><p className="panel-note">Clique numa coluna para filtrar o painel pelo tipo.</p></div>
           : <div className="donut-layout">
-          <div className="donut-wrap"><VegaChart spec={specs.types} onClick={(d) => d.type && pick('tipo')(d.type)} /><div className="donut-total"><strong>{fmt(data.total)}</strong><span>documentos</span></div></div>
+          <div className="donut-wrap"><VegaChart spec={specs.types} onClick={(d) => d.key && pick('tipo')(d.key)} /><div className="donut-total"><strong>{fmt(data.total)}</strong><span>documentos</span></div></div>
           <ul className="legend-list">
             {specs.typeRows.map((item) => <li key={item.type} className={selType && selType !== item.type ? 'dimmed' : ''}>
               <button type="button" className="legend-filter" aria-pressed={selType === item.type} onClick={() => pick('tipo')(item.type)} title="Filtrar o painel por este tipo">
@@ -438,16 +457,16 @@ export function DetailSections({ filters, onFilter, onSummary }) {
 
     <section className="detail-grid narrow-left">
       <div className="panel-stack">
-        <Panel title="Idioma" onClear={clear('idioma')} note={`Idioma informado em ${fmt(data.coverage.languages)} documentos (OASISbr). O OpenAlex não traz esse campo na base atual.`}>
-          <div className="language-layout">
-            <VegaChart spec={specs.languages} onClick={(d) => d.code && pick('idioma')(d.code)} />
-            <ul className="legend-list">
+        <Panel className="language-panel" title="Idioma das publicações" onClear={clear('idioma')} actions={<ChartControls values={langValues} onValues={setLangValues} mode={langChart} onMode={setLangChart} />} note={`Idioma informado em ${fmt(data.coverage.languages)} documentos (OASISbr). O OpenAlex não traz esse campo na base atual.`}>
+          <div className={`language-layout ${langChart === 'colunas' ? 'columns' : ''}`}>
+            <VegaChart spec={specs.languages} onClick={(d) => d.key && pick('idioma')(d.key)} />
+            {langChart === 'rosca' && <ul className="legend-list">
               {specs.languageRows.map((l) => <li key={l.code} className={sel('idioma') && sel('idioma') !== l.code ? 'dimmed' : ''}>
                 <button type="button" className="legend-filter" aria-pressed={sel('idioma') === l.code} onClick={() => pick('idioma')(l.code)} title="Filtrar o painel por este idioma">
                   <span style={{ background: LANGUAGE_COLORS[l.code] || '#8c90b8' }}></span><div><b>{l.language}</b><small>{fmt(l.documents)} · {pct(l.share)}</small></div>
                 </button>
               </li>)}
-            </ul>
+            </ul>}
           </div>
         </Panel>
         <article className="panel network-panel">
