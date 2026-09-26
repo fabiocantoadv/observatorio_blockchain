@@ -5,14 +5,10 @@ import { DataTable, Pager } from './DataTable'
 // Seções replicadas do painel Kibana "RNP - v4" (rnpdash.ibict.br), calculadas a partir
 // do banco local via /api/insights e /api/publicacoes. Respeitam os filtros de tipo e ano.
 
-export const GROUP_COLORS = {
-  Tecnologia: { fill: '#001eff', ink: '#ffffff' },
-  Aplicações: { fill: '#00f0dc', ink: '#0a0a8c' },
-  Dados: { fill: '#ffff00', ink: '#0a0a8c' },
-  Governança: { fill: '#6678ff', ink: '#ffffff' },
-  Economia: { fill: '#0a0a8c', ink: '#ffffff' },
-}
-const GROUPS = Object.keys(GROUP_COLORS)
+// Treemap de palavras-chave: rampa sequencial suave, do cinza claro (menos ocorrências)
+// ao verde escuro (mais ocorrências).
+const FREQ_RAMP = ['#eef0f2', '#d3d9d7', '#adc6b8', '#7aad90', '#448c68', '#1f6b4a']
+const FREQ_DARK_FROM = 0.7 // a partir desta posição na rampa o texto passa a branco
 
 // Mapa de coautoria publicado no painel Kibana (VOSviewer).
 const NETWORK_URL = 'https://app.vosviewer.com/?json=https%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D1ETJSDQR_xOOfvf1A4gHdX5zCqQ55Za1a'
@@ -56,12 +52,13 @@ function useContainerWidth() {
   return [ref, width]
 }
 
-export function GroupLegend() {
-  return <ul className="inline-legend" aria-label="Temas das palavras-chave">
-    {GROUPS.map((g) => <li key={g}><span style={{ background: GROUP_COLORS[g].fill }}></span>{g}</li>)}
-  </ul>
+function FrequencyLegend() {
+  return <div className="freq-legend" aria-hidden="true">
+    <span>Menos ocorrências</span>
+    <i style={{ background: `linear-gradient(90deg, ${FREQ_RAMP.join(', ')})` }}></i>
+    <span>Mais ocorrências</span>
+  </div>
 }
-
 function Panel({ label, title, chip, note, className = '', children }) {
   return <article className={`panel ${className}`}>
     <div className="panel-heading"><div><p className="section-label">{label}</p><h2>{title}</h2></div>{chip && <span className="data-chip">{chip}</span>}</div>
@@ -94,6 +91,9 @@ function horizontalBar(values, { field, label, color, height, tooltipTitle, shar
 function KeywordTreemap({ keywords }) {
   const [ref, width] = useContainerWidth()
   const total = keywords.reduce((sum, k) => sum + k.documents, 0)
+  const counts = keywords.map((k) => k.documents)
+  const lo = Math.min(...counts)
+  const hi = Math.max(...counts, lo + 1)
   const spec = useMemo(() => width ? ({
     $schema: 'https://vega.github.io/schema/vega/v6.json',
     width,
@@ -112,8 +112,9 @@ function KeywordTreemap({ keywords }) {
       { name: 'leaves', source: 'tree', transform: [{ type: 'filter', expr: 'datum.parent' }] },
     ],
     scales: [
-      { name: 'fill', type: 'ordinal', domain: GROUPS, range: GROUPS.map((g) => GROUP_COLORS[g].fill) },
-      { name: 'ink', type: 'ordinal', domain: GROUPS, range: GROUPS.map((g) => GROUP_COLORS[g].ink) },
+      // Escala logarítmica: poucas palavras concentram muitas ocorrências (ex.: Bitcoin).
+      { name: 'fill', type: 'log', domain: [lo, hi], range: FREQ_RAMP, interpolate: 'rgb', clamp: true },
+      { name: 'pos', type: 'log', domain: [lo, hi], range: [0, 1], clamp: true },
     ],
     marks: [
       {
@@ -121,10 +122,10 @@ function KeywordTreemap({ keywords }) {
         encode: {
           enter: {
             x: { field: 'x0' }, y: { field: 'y0' }, x2: { field: 'x1' }, y2: { field: 'y1' },
-            fill: { scale: 'fill', field: 'group' }, stroke: { value: '#ffffff' }, strokeWidth: { value: 1 }, cornerRadius: { value: 3 },
+            fill: { scale: 'fill', field: 'documents' }, stroke: { value: '#ffffff' }, strokeWidth: { value: 2 }, cornerRadius: { value: 4 },
             tooltip: { signal: "{'Palavra-chave': datum.keyword, 'Documentos': datum.documents, 'Tema': datum.group, '% do top 50': format(datum.share, '.1%')}" },
           },
-          hover: { fillOpacity: { value: 0.85 } },
+          hover: { fillOpacity: { value: 0.8 } },
           update: { fillOpacity: { value: 1 } },
         },
       },
@@ -133,7 +134,7 @@ function KeywordTreemap({ keywords }) {
         encode: {
           enter: {
             x: { signal: 'datum.x0 + 7' }, y: { signal: 'datum.y0 + 17' },
-            text: { field: 'keyword' }, fill: { scale: 'ink', field: 'group' },
+            text: { field: 'keyword' }, fill: { signal: `scale('pos', datum.documents) > ${FREQ_DARK_FROM} ? '#ffffff' : '#1f2a33'` },
             font: { value: 'Manrope, Arial, sans-serif' }, fontSize: { value: 12 }, fontWeight: { value: 700 },
             limit: { signal: 'datum.x1 - datum.x0 - 12' },
             opacity: { signal: '(datum.x1 - datum.x0) > 46 && (datum.y1 - datum.y0) > 24 ? 1 : 0' },
@@ -145,14 +146,14 @@ function KeywordTreemap({ keywords }) {
         encode: {
           enter: {
             x: { signal: 'datum.x0 + 7' }, y: { signal: 'datum.y0 + 32' },
-            text: { signal: "format(datum.share, '.1%')" }, fill: { scale: 'ink', field: 'group' },
+            text: { signal: "format(datum.share, '.1%')" }, fill: { signal: `scale('pos', datum.documents) > ${FREQ_DARK_FROM} ? '#ffffff' : '#1f2a33'` },
             font: { value: 'Manrope, Arial, sans-serif' }, fontSize: { value: 11 },
             opacity: { signal: '(datum.x1 - datum.x0) > 46 && (datum.y1 - datum.y0) > 42 ? 0.85 : 0' },
           },
         },
       },
     ],
-  }) : null, [keywords, width, total])
+  }) : null, [keywords, width, total, lo, hi])
   return <div ref={ref} className="treemap-wrap">{spec && keywords.length ? <VegaChart spec={spec} /> : null}</div>
 }
 
@@ -281,7 +282,7 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
         </div>
       </Panel>
       <Panel label="ASSUNTOS" title="Palavras-chave (50 mais utilizadas)" note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
-        <GroupLegend />
+        <FrequencyLegend />
         {data.keywords.length ? <KeywordTreemap keywords={data.keywords} /> : <Empty>Nenhuma palavra-chave neste recorte (só o OASISbr traz palavras-chave).</Empty>}
       </Panel>
     </section>
