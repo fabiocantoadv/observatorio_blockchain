@@ -43,3 +43,53 @@ nav button { color: #617187; } nav button:hover { color: #173149; background: #f
 .password-field { position:relative; display:block; }.login-modal .password-field input { padding-right:72px; }.password-toggle { position:absolute; right:5px; top:50%; transform:translateY(-50%); border:0; border-radius:5px; padding:5px 7px; color:#158d7d; background:#edf9f6; font-size:10px; font-weight:800; }
 .avatar { overflow:hidden; padding:0; }.avatar img { display:block; width:100%; height:100%; object-fit:cover; }.profile-modal { width:min(100%,430px); }.profile-preview { width:76px; height:76px; overflow:hidden; display:grid; place-items:center; margin:0 auto 10px; border:3px solid #d8f0eb; border-radius:50%; color:#fff; background:linear-gradient(140deg,#5378cf,#159d8b); font-size:23px; font-weight:800; }.profile-preview img { width:100%; height:100%; object-fit:cover; }.profile-photo-actions { display:flex; align-items:center; justify-content:center; gap:13px; margin:-1px 0 8px; }.profile-photo-actions .remove-button { font-size:10px; }.profile-modal .secondary-button { justify-self:center; }
 #dashboard-content { scroll-margin-top: 90px; }
+
+
+/* ==========================================================
+   Paleta institucional
+   Cor 1 Azul Escuro #0a0a8c · Cor 2 Azul Elétrico #001eff
+   Cor 3 Ciano/Turquesa #00f0dc · Cor 4 Amarelo #ffff00
+   Ciano e amarelo têm pouco contraste sobre branco: são usados
+   como preenchimento/destaque, nunca como cor de texto no claro.
+   ========================================================== */
+:root { --c1:#0a0a8c; --c2:#001eff; --c3:#00f0dc; --c4:#ffff00; --c1-soft:#eceefb; --c2-soft:#e8ebff; --c3-soft:#dffcf9; --ink:#0a0a8c; --muted:#5c6390; --line:#dfe2f2; color:#1b1f4d; background:#f4f5fb; }
+body { background:#f4f5fb; }
+.app-shell { background: radial-gradient(900px 520px at 100% -8%, rgba(0,240,220,.16) 0%, transparent 62%), #f4f5fb; }
+
+/* Barra superior */
+.site-header { background: var(--c1); border-bottom: 3px solid var(--c3); backdrop-filter:none; }
+.brand { color:#fff; }.brand b { color: var(--c3); }.brand-mark i { background: var(--c3); }.brand-mark i:nth-child(2) { background: var(--c4); }
+nav button { color: rgba(255,255,255,.74); } nav button:hover { color:#fff; background: rgba(255,255,255,.09); } nav button.active { color:#fff; background: rgba(0,240,220,.16); box-shadow: inset 0 -2px 0 var(--c3); }
+.nav-icon { color: rgba(255,255,255,.55); }.active .nav-icon { color: var(--c3); }
+.data-status { color: rgba(255,255,255,.86); }.data-status small { color: rgba(255,255,255,.55); }.pulse { background: var(--c3); box-shadow: 0 0 0 4px rgba(0,240,220,.22); }
+.header-actions a { background: transparent; border-color: rgba(255,255,255,.3); color:#fff; }.header-actions a:hover { border-color: var(--c3); }.header-actions a span { color: var(--c3); }
+.avatar { background: var(--c4); color: var(--c1); }
+
+/* Tipografia e superfícies */
+.page-title h1,.panel h2,.metric-card strong,.donut-total strong,.about-panel h2,.admin-heading h2,.admin-card h3,.login-modal h2 { color: var(--ink); }
+.eyebrow,.section-label { color: var(--muted); }
+.filters,.metric-card,.panel,.about-panel,.admin-heading,.admin-card,.admin-actions { border-color: var(--line); box-shadow: 0 5px 18px rgba(10,10,140,.05); }
+.filter-label { color: var(--ink); }.filter-label span { color: var(--c2); }.filters select { color: var(--ink); border-color:#d6daf0; }.filters select:focus { border-color: var(--c2); }.clear-filter { color: var(--c2); }
+.metric-card span { color: var(--muted); }.metric-card small { color:#7c82a8; }
+.metric-card:after { width:4px; background: var(--c1); }.metric-card.blue:after { background: var(--c2); }.metric-card.gold:after { background: var(--c4); }.metric-card.pink:after { background: var(--c3); }
+.data-chip { background: var(--c2-soft); color: var(--c1); }.trend-change { background: var(--c3-soft); color: var(--c1); }
+.legend-list b { color: var(--ink); }.legend-list small,.panel-note,.donut-total span,.more { color: var(--muted); }
+.legend-list li>span { box-shadow: 0 0 0 1px rgba(10,10,140,.18); }
+
+/* Leitura rápida: bloco de destaque em azul escuro */
+.insight-panel { background: linear-gradient(150deg, var(--c1) 0%, var(--c1) 55%, #1a2bd6 100%); border-color: var(--c1); }
+.insight-panel h2 { color:#fff; }.insight-panel .section-label { color: rgba(255,255,255,.62); }
+.insight-copy,.insight-stat p { color: rgba(255,255,255,.8); }.insight-stat { border-color: rgba(255,255,255,.2); }.insight-stat span { color: var(--c4); }
+.insight-panel a { color:#fff; }.insight-panel a span { color: var(--c3); }.insight-panel:after { background: rgba(0,240,220,.14); }
+footer { color: var(--muted); }
+
+/* Sobre os dados */
+.about-panel>p:not(.section-label) { color:#454b7a; }.about-grid div { background: var(--c1-soft); border-color: var(--line); }.about-grid span { color: var(--muted); }.about-grid b { color: var(--ink); }.about-panel a { color: var(--c2); }
+
+/* Administração, login e perfil */
+.storage-badge.online { color: var(--c1); background: var(--c3-soft); }
+.admin-panel input,.admin-panel select,.login-modal input { outline-color: var(--c2); }
+.add-button { border-color:#b8c0ff; background: var(--c2-soft); color: var(--c2); }
+.save-button,.login-submit { border-color: var(--c2); background: var(--c2); }
+.login-icon,.profile-preview { background: linear-gradient(135deg, var(--c1), var(--c2)); }.profile-preview { border-color: var(--c3-soft); }
+.password-toggle { color: var(--c2); background: var(--c2-soft); }

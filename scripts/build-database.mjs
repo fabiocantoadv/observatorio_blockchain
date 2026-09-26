@@ -26,11 +26,11 @@ const TYPE_LABEL = {
 }
 
 const KEYWORD_GROUPS = [
-  ['Tecnologia', '#4dd4bd', ['smart contract', 'contratos inteligentes', 'ethereum', 'hyperledger', 'distributed ledger', 'consenso', 'consensus', 'immutability', 'imutabilidade', 'solidity', 'nft', 'iot', 'internet das coisas', 'technology', 'tecnologia', 'blockchain technology']],
-  ['Aplicações', '#7e8cff', ['supply chain', 'cadeia de suprimentos', 'traceability', 'rastreabilidade', 'saúde', 'health', 'logística', 'votação', 'identidade', 'educação']],
-  ['Dados', '#f2c66d', ['data sharing', 'dados', 'segurança', 'security', 'privacidade', 'privacy', 'base de dados', 'databases']],
-  ['Governança', '#f279aa', ['governança', 'governance', 'regulação', 'regulação', 'regulation', 'direito', 'lgpd', 'compliance', 'política']],
-  ['Economia', '#a879e9', ['bitcoin', 'criptomoeda', 'criptomoedas', 'cryptocurrency', 'cryptocurrencies', 'criptoativos', 'tokenização', 'token', 'moeda', 'economia', 'finanças', 'defi', 'tributação']],
+  ['Tecnologia', '#001eff', ['smart contract', 'contratos inteligentes', 'ethereum', 'hyperledger', 'distributed ledger', 'consenso', 'consensus', 'immutability', 'imutabilidade', 'solidity', 'nft', 'iot', 'internet das coisas', 'technology', 'tecnologia', 'blockchain technology']],
+  ['Aplicações', '#00f0dc', ['supply chain', 'cadeia de suprimentos', 'traceability', 'rastreabilidade', 'saúde', 'health', 'logística', 'votação', 'identidade', 'educação']],
+  ['Dados', '#ffff00', ['data sharing', 'dados', 'segurança', 'security', 'privacidade', 'privacy', 'base de dados', 'databases']],
+  ['Governança', '#6678ff', ['governança', 'governance', 'regulação', 'regulação', 'regulation', 'direito', 'lgpd', 'compliance', 'política']],
+  ['Economia', '#0a0a8c', ['bitcoin', 'criptomoeda', 'criptomoedas', 'cryptocurrency', 'cryptocurrencies', 'criptoativos', 'tokenização', 'token', 'moeda', 'economia', 'finanças', 'defi', 'tributação']],
 ]
 
 function classifyKeyword(kw) {

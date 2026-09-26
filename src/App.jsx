@@ -124,7 +124,7 @@ export default function App() {
     width: 300,
     height: 245,
     data: { values: donutValues },
-    mark: { type: 'arc', innerRadius: 72, stroke: '#161f2d', strokeWidth: 2 },
+    mark: { type: 'arc', innerRadius: 72, stroke: '#ffffff', strokeWidth: 2 },
     encoding: {
       theta: { field: 'count', type: 'quantitative' },
       color: { field: 'type', type: 'nominal', scale: { domain: documentTypes.map((d) => d.type), range: palette }, legend: null },
@@ -145,14 +145,14 @@ export default function App() {
     data: { values: filteredYears },
     layer: [
       {
-        mark: { type: 'area', interpolate: 'monotone', color: '#4dd4bd', opacity: 0.16 },
+        mark: { type: 'area', interpolate: 'monotone', color: '#00f0dc', opacity: 0.22 },
         encoding: {
-          x: { field: 'year', type: 'ordinal', axis: { title: null, labelColor: '#66758a', labelAngle: 0, labelPadding: 10, domain: false, tickColor: '#ccd7e2' } },
-          y: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#66758a', gridColor: '#e0e8ef', domain: false, tickColor: 'transparent' }, scale: { zero: true } }
+          x: { field: 'year', type: 'ordinal', axis: { title: null, labelColor: '#5c6390', labelAngle: 0, labelPadding: 10, domain: false, tickColor: '#cfd3ea' } },
+          y: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, tickColor: 'transparent' }, scale: { zero: true } }
         }
       },
       {
-        mark: { type: 'line', interpolate: 'monotone', color: '#159d8b', strokeWidth: 3, point: { filled: true, fill: '#ffffff', stroke: '#159d8b', size: 60, strokeWidth: 2 } },
+        mark: { type: 'line', interpolate: 'monotone', color: '#001eff', strokeWidth: 3, point: { filled: true, fill: '#ffffff', stroke: '#001eff', size: 60, strokeWidth: 2 } },
         encoding: {
           x: { field: 'year', type: 'ordinal' },
           y: { field: 'documents', type: 'quantitative' },
@@ -169,11 +169,11 @@ export default function App() {
     width: 'container',
     height: 275,
     data: { values: filteredKeywordData },
-    mark: { type: 'bar', cornerRadiusEnd: 6, height: 18 },
+    mark: { type: 'bar', cornerRadiusEnd: 6, height: 18, stroke: '#0a0a8c', strokeOpacity: 0.25, strokeWidth: 1 },
     encoding: {
-      y: { field: 'keyword', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#526278', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
-      x: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#66758a', gridColor: '#e0e8ef', domain: false, ticks: false } },
-      color: { field: 'group', type: 'nominal', scale: { domain: ['Tecnologia', 'Aplicações', 'Dados', 'Governança', 'Economia'], range: ['#4dd4bd', '#7e8cff', '#f2c66d', '#f279aa', '#a879e9'] }, legend: null },
+      y: { field: 'keyword', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#3b4175', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
+      x: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false } },
+      color: { field: 'group', type: 'nominal', scale: { domain: ['Tecnologia', 'Aplicações', 'Dados', 'Governança', 'Economia'], range: ['#001eff', '#00f0dc', '#ffff00', '#6678ff', '#0a0a8c'] }, legend: null },
       tooltip: [{ field: 'keyword', title: 'Palavra-chave' }, { field: 'documents', title: 'Documentos' }, { field: 'group', title: 'Tema' }]
     },
     config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }
@@ -185,10 +185,10 @@ export default function App() {
     width: 'container',
     height: 275,
     data: { values: patents.byCountry },
-    mark: { type: 'bar', cornerRadiusEnd: 6, height: 18, color: '#7e8cff' },
+    mark: { type: 'bar', cornerRadiusEnd: 6, height: 18, color: '#001eff' },
     encoding: {
-      y: { field: 'country', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#526278', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
-      x: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: '#66758a', gridColor: '#e0e8ef', domain: false, ticks: false } },
+      y: { field: 'country', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#3b4175', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
+      x: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false } },
       tooltip: [{ field: 'country', title: 'País do titular' }, { field: 'count', title: 'Patentes' }]
     },
     config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }

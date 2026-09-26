@@ -21,12 +21,12 @@ async function db() {
 }
 
 const TYPE_STYLE = [
-  ['Artigo', '#4dd4bd'],
-  ['TCC', '#7e8cff'],
-  ['Dissertação', '#a879e9'],
-  ['Tese', '#f2c66d'],
-  ['Capítulo de livro', '#f279aa'],
-  ['Livro', '#dc6c61'],
+  ['Artigo', '#0a0a8c'],
+  ['TCC', '#00f0dc'],
+  ['Dissertação', '#001eff'],
+  ['Tese', '#ffff00'],
+  ['Capítulo de livro', '#6678ff'],
+  ['Livro', '#00a99d'],
 ]
 
 const DEFAULT_PROFILE = { name: 'Administrador', initials: 'AD', photo: '' }
