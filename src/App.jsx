@@ -226,7 +226,6 @@ export default function App() {
         </nav>
         <div className="header-actions">
           <span className="data-status" title="Fonte: ONB / IBICT"><span className="pulse"></span>Dados públicos<small>ONB / IBICT</small></span>
-          <a href={source.dashboardUrl} target="_blank" rel="noreferrer">Abrir no Kibana <span>↗</span></a>
           <button className="avatar" aria-label={adminCredentials ? 'Editar perfil' : 'Entrar na administração'} title={adminCredentials ? 'Editar perfil' : 'Entrar na administração'} onClick={openProfile}>{data.profile.photo ? <img src={data.profile.photo} alt="" /> : data.profile.initials}</button>
         </div>
       </div>
