@@ -10,7 +10,7 @@ import networkIllustration from '../assets/rede-coautoria-ilustrativa.svg'
 // ao verde escuro (mais ocorrências).
 const FREQ_RAMP = ['#eef0f2', '#d3d9d7', '#adc6b8', '#7aad90', '#448c68', '#1f6b4a']
 const FREQ_DARK_FROM = 0.7 // a partir desta posição na rampa o texto passa a branco
-// Tópicos: rampa do cinza-azulado claro a um azul intermediário.
+// Treemaps de tópicos e palavras-chave: rampa do cinza-azulado claro a um azul intermediário.
 const TOPIC_RAMP = ['#eef0f5', '#d5dcf0', '#b3c0ea', '#8a9fe3', '#5f7bdb', '#3a5bd3']
 const TOPIC_DARK_FROM = 0.78
 
@@ -326,8 +326,8 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
         </article>
       </div>
       <Panel className="treemap-panel" title="Palavras-chave (50 mais utilizadas)" note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
-        <FrequencyLegend />
-        {data.keywords.length ? <FrequencyTreemap items={keywordItems} labelTitle="Palavra-chave" tooltipFields={KEYWORD_TOOLTIP} shareTitle="% do top 50" /> : <Empty>Nenhuma palavra-chave neste recorte (só o OASISbr traz palavras-chave).</Empty>}
+        <FrequencyLegend ramp={TOPIC_RAMP} />
+        {data.keywords.length ? <FrequencyTreemap items={keywordItems} labelTitle="Palavra-chave" tooltipFields={KEYWORD_TOOLTIP} shareTitle="% do top 50" ramp={TOPIC_RAMP} darkFrom={TOPIC_DARK_FROM} /> : <Empty>Nenhuma palavra-chave neste recorte (só o OASISbr traz palavras-chave).</Empty>}
       </Panel>
     </section>
 
