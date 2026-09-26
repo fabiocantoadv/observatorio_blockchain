@@ -211,7 +211,7 @@ function PublicationsTable({ selectedType, selectedYear }) {
   </div>
 }
 
-export function DetailSections({ selectedType, selectedYear }) {
+export function DetailSections({ selectedType, selectedYear, onSummary }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
 
@@ -220,7 +220,7 @@ export function DetailSections({ selectedType, selectedYear }) {
     setError('')
     fetch(`/api/insights${query({ tipo: selectedType, ano: selectedYear })}`)
       .then((r) => r.ok ? r.json() : Promise.reject(new Error('Não foi possível carregar os indicadores detalhados.')))
-      .then((payload) => { if (active) setData(payload) })
+      .then((payload) => { if (active) { setData(payload); onSummary?.({ total: payload.total }) } })
       .catch((e) => { if (active) setError(e.message) })
     return () => { active = false }
   }, [selectedType, selectedYear])

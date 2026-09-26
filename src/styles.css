@@ -189,3 +189,15 @@ footer { color: var(--muted); }
 .sort-toggle button { border:0; background:transparent; color:var(--muted); font-size:10px; font-weight:800; padding:5px 10px; border-radius:99px; }
 .sort-toggle button:hover { color:var(--ink); }
 .sort-toggle button.active { background:var(--c1); color:#fff; }
+
+/* Total na barra de filtros */
+.filter-total { display:grid; gap:1px; padding:2px 0 2px 16px; margin-left:4px; border-left:4px solid var(--c1); }
+.filter-total span { color:var(--muted); font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.filter-total strong { color:var(--ink); font-size:24px; line-height:1.1; letter-spacing:-1px; font-variant-numeric:tabular-nums; }
+.filter-total small { color:#7c82a8; font-size:10px; }
+.data-tabs { margin-right:0; }
+.filters .filter-total { margin-right:auto; }
+.filters > :first-child + .filter-total + label, .filters label { align-self:flex-end; }
+.filters { margin-bottom:17px; }
+@media (max-width:720px) { .filter-total { grid-column:1/-1; margin-left:0; } }
+.dashboard { padding-top:24px; }

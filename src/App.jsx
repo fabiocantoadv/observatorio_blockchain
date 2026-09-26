@@ -27,12 +27,12 @@ function compact(value) {
   return new Intl.NumberFormat('pt-BR').format(value)
 }
 
-function MetricCard({ label, value, detail, accent = 'mint' }) {
-  return <article className={`metric-card ${accent}`}>
+function FilterTotal({ label, value, detail }) {
+  return <div className="filter-total" aria-live="polite">
     <span>{label}</span>
     <strong>{value}</strong>
-    <small>{detail}</small>
-  </article>
+    {detail && <small>{detail}</small>}
+  </div>
 }
 
 function NavIcon({ name }) {
@@ -50,6 +50,8 @@ export default function App() {
   const [selectedYear, setSelectedYear] = useState('Todos')
   const [activeTab, setActiveTab] = useState('Publicações')
   const [yearSort, setYearSort] = useState('cronologica')
+  const [pubSummary, setPubSummary] = useState(null)
+  const [patentSummary, setPatentSummary] = useState(null)
   const [patentYear, setPatentYear] = useState('Todos')
   const [patentCountry, setPatentCountry] = useState('Todos')
   const [patentOptions, setPatentOptions] = useState({ years: [], countries: [] })
@@ -251,15 +253,15 @@ export default function App() {
 
 
     <section className={`dashboard view-${activePage.toLowerCase().replaceAll(' ', '-')}`} id="inicio">
-      <div className="page-title">
-        <p className="eyebrow">INDICADORES · {activeTab === 'Patentes' && activePage === 'Visão geral' ? 'PATENTES' : 'PRODUÇÃO CIENTÍFICA'}</p>
-        <h1>{activePage}</h1>
-      </div>
+      <h1 className="visually-hidden">Observatório Blockchain — {activePage}</h1>
 
       {activePage === 'Visão geral' && <section className="filters" aria-label="Filtros">
         <div className="data-tabs" role="tablist" aria-label="Base de dados">
           {DATA_TABS.map((tab) => <button key={tab} role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}
         </div>
+        {activeTab === 'Publicações'
+          ? <FilterTotal label="Total de publicações" value={compact(pubSummary ? pubSummary.total : selectedCount)} detail={selectedType === 'Todos' && selectedYear === 'Todos' ? 'Base consolidada' : 'No recorte filtrado'} />
+          : <FilterTotal label="Total de patentes" value={patentSummary ? compact(patentSummary.total) : '—'} detail={patentSummary ? `${compact(patentSummary.applications)} números de pedido distintos` : ''} />}
         {activeTab === 'Publicações' ? <>
           <label>Tipo documental
             <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)}>
@@ -291,11 +293,7 @@ export default function App() {
         </>}
       </section>}
 
-      {activePage !== 'Sobre os dados' && activePage !== 'Administração' && activeTab === 'Publicações' && <section className="metrics" aria-label="Resumo">
-        <MetricCard label="Documentos mapeados" value={compact(selectedCount)} detail={selectedType === 'Todos' ? 'Base consolidada' : `Seleção: ${selectedType}`} />
-      </section>}
-
-      {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? activeTab === 'Patentes' ? <div id="dashboard-content"><PatentSections ano={patentYear} pais={patentCountry} /></div> : <div id="dashboard-content">
+      {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? activeTab === 'Patentes' ? <div id="dashboard-content"><PatentSections ano={patentYear} pais={patentCountry} onSummary={setPatentSummary} /></div> : <div id="dashboard-content">
       <section className="main-grid">
         <article className="panel composition-panel">
           <div className="panel-heading"><div><p className="section-label">DISTRIBUIÇÃO</p><h2>Tipos de documentos</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
@@ -325,7 +323,7 @@ export default function App() {
         </article>
       </section>
 
-      <DetailSections selectedType={selectedType} selectedYear={selectedYear} /></div> : <section className="about-panel" id="dashboard-content">
+      <DetailSections selectedType={selectedType} selectedYear={selectedYear} onSummary={setPubSummary} /></div> : <section className="about-panel" id="dashboard-content">
         <p className="section-label">TRANSPARÊNCIA</p>
         <h2>Sobre os dados</h2>
         <p>Esta visualização consolida a produção científica e as patentes sobre blockchain a partir de três bases públicas: OpenAlex, OASISbr (IBICT) e uma base de patentes de Google Patents, INPI e IBICT. Os dados são ingeridos dos arquivos CSV para um banco SQLite, que alimenta os gráficos.</p>

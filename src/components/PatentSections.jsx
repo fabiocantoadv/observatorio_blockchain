@@ -17,10 +17,6 @@ function query(params) {
   return text ? `?${text}` : ''
 }
 
-function MetricCard({ label, value, detail, accent = 'mint' }) {
-  return <article className={`metric-card ${accent}`}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>
-}
-
 function Panel({ label, title, chip, note, children }) {
   return <article className="panel">
     <div className="panel-heading"><div><p className="section-label">{label}</p><h2>{title}</h2></div>{chip && <span className="data-chip">{chip}</span>}</div>
@@ -105,7 +101,7 @@ function PatentList({ ano, pais }) {
   </div>
 }
 
-export function PatentSections({ ano, pais }) {
+export function PatentSections({ ano, pais, onSummary }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
 
@@ -114,7 +110,7 @@ export function PatentSections({ ano, pais }) {
     setError('')
     fetch(`/api/patentes${query({ view: 'insights', ano, pais })}`)
       .then((r) => r.ok ? r.json() : Promise.reject(new Error('Não foi possível carregar os dados de patentes.')))
-      .then((payload) => { if (active) setData(payload) })
+      .then((payload) => { if (active) { setData(payload); onSummary?.({ total: payload.total, applications: payload.applications }) } })
       .catch((e) => { if (active) setError(e.message) })
     return () => { active = false }
   }, [ano, pais])
@@ -152,10 +148,6 @@ export function PatentSections({ ano, pais }) {
   const leadHolder = data.byHolder[0]
 
   return <div className="patent-sections">
-    <section className="metrics" aria-label="Resumo de patentes">
-      <MetricCard label="Patentes mapeadas" value={fmt(data.total)} detail={`${fmt(data.applications)} números de pedido distintos`} />
-    </section>
-
     {data.total === 0 ? <Empty /> : <>
       <section className="detail-grid">
         <Panel label="TENDÊNCIA" title="Depósitos por ano" note="Ano da data de depósito. Pedidos ficam em sigilo por até 18 meses, por isso os anos mais recentes aparecem incompletos.">
