@@ -10,6 +10,9 @@ import networkIllustration from '../assets/rede-coautoria-ilustrativa.svg'
 // ao verde escuro (mais ocorrências).
 const FREQ_RAMP = ['#eef0f2', '#d3d9d7', '#adc6b8', '#7aad90', '#448c68', '#1f6b4a']
 const FREQ_DARK_FROM = 0.7 // a partir desta posição na rampa o texto passa a branco
+// Tópicos: rampa do cinza-azulado claro a um azul intermediário.
+const TOPIC_RAMP = ['#eef0f5', '#d5dcf0', '#b3c0ea', '#8a9fe3', '#5f7bdb', '#3a5bd3']
+const TOPIC_DARK_FROM = 0.78
 
 // Mapa de coautoria publicado no painel Kibana (VOSviewer).
 const NETWORK_URL = 'https://app.vosviewer.com/?json=https%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D1ETJSDQR_xOOfvf1A4gHdX5zCqQ55Za1a'
@@ -63,10 +66,10 @@ function useContainerSize() {
   return [ref, size]
 }
 
-function FrequencyLegend() {
+function FrequencyLegend({ ramp = FREQ_RAMP }) {
   return <div className="freq-legend" aria-hidden="true">
     <span>Menos ocorrências</span>
-    <i style={{ background: `linear-gradient(90deg, ${FREQ_RAMP.join(', ')})` }}></i>
+    <i style={{ background: `linear-gradient(90deg, ${ramp.join(', ')})` }}></i>
     <span>Mais ocorrências</span>
   </div>
 }
@@ -102,7 +105,7 @@ function horizontalBar(values, { field, label, color, height, tooltipTitle, shar
 // Treemap genérico por frequência. items: [{ label, documents, ...campos extras }].
 // tooltipFields: [[título, campo]] exibidos além do rótulo e da contagem; shareTitle: rótulo do percentual.
 const NO_FIELDS = []
-function FrequencyTreemap({ items: keywords, labelTitle, tooltipFields = NO_FIELDS, shareTitle }) {
+function FrequencyTreemap({ items: keywords, labelTitle, tooltipFields = NO_FIELDS, shareTitle, ramp = FREQ_RAMP, darkFrom = FREQ_DARK_FROM }) {
   // O treemap ocupa toda a altura do contêiner (definida pelo CSS de .treemap-wrap).
   const [ref, { width, height: boxHeight }] = useContainerSize()
   const height = boxHeight || TREEMAP_HEIGHT // a altura mínima vem do CSS (.treemap-wrap)
@@ -129,7 +132,7 @@ function FrequencyTreemap({ items: keywords, labelTitle, tooltipFields = NO_FIEL
     ],
     scales: [
       // Escala logarítmica: poucas palavras concentram muitas ocorrências (ex.: Bitcoin).
-      { name: 'fill', type: 'log', domain: [lo, hi], range: FREQ_RAMP, interpolate: 'rgb', clamp: true },
+      { name: 'fill', type: 'log', domain: [lo, hi], range: ramp, interpolate: 'rgb', clamp: true },
       { name: 'pos', type: 'log', domain: [lo, hi], range: [0, 1], clamp: true },
     ],
     marks: [
@@ -150,7 +153,7 @@ function FrequencyTreemap({ items: keywords, labelTitle, tooltipFields = NO_FIEL
         encode: {
           enter: {
             x: { signal: 'datum.x0 + 7' }, y: { signal: 'datum.y0 + 17' },
-            text: { field: 'label' }, fill: { signal: `scale('pos', datum.documents) > ${FREQ_DARK_FROM} ? '#ffffff' : '#1f2a33'` },
+            text: { field: 'label' }, fill: { signal: `scale('pos', datum.documents) > ${darkFrom} ? '#ffffff' : '#1f2a33'` },
             font: { value: 'Manrope, Arial, sans-serif' }, fontSize: { value: 12 }, fontWeight: { value: 700 },
             limit: { signal: 'datum.x1 - datum.x0 - 12' },
             opacity: { signal: '(datum.x1 - datum.x0) > 46 && (datum.y1 - datum.y0) > 24 ? 1 : 0' },
@@ -162,14 +165,14 @@ function FrequencyTreemap({ items: keywords, labelTitle, tooltipFields = NO_FIEL
         encode: {
           enter: {
             x: { signal: 'datum.x0 + 7' }, y: { signal: 'datum.y0 + 32' },
-            text: { signal: "format(datum.share, '.1%')" }, fill: { signal: `scale('pos', datum.documents) > ${FREQ_DARK_FROM} ? '#ffffff' : '#1f2a33'` },
+            text: { signal: "format(datum.share, '.1%')" }, fill: { signal: `scale('pos', datum.documents) > ${darkFrom} ? '#ffffff' : '#1f2a33'` },
             font: { value: 'Manrope, Arial, sans-serif' }, fontSize: { value: 11 },
             opacity: { signal: '(datum.x1 - datum.x0) > 46 && (datum.y1 - datum.y0) > 42 ? 0.85 : 0' },
           },
         },
       },
     ],
-  }) : null, [keywords, width, height, total, lo, hi, labelTitle, shareTitle, tooltipFields])
+  }) : null, [keywords, width, height, total, lo, hi, labelTitle, shareTitle, tooltipFields, ramp, darkFrom])
   return <div ref={ref} className="treemap-wrap"><div className="treemap-canvas">{spec && keywords.length ? <VegaChart spec={spec} /> : null}</div></div>
 }
 
@@ -329,9 +332,9 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
     </section>
 
     <Panel className="full-width topics-panel" title="Tópicos" chip={data.topics.length > TOPICS_SHOWN ? `${TOPICS_SHOWN} de ${fmt(data.topics.length)} tópicos` : `${fmt(data.topics.length)} tópicos`} note={`Tópico principal (primary topic) atribuído pelo OpenAlex a ${fmt(data.coverage.topics)} documentos. Percentuais sobre os documentos com tópico; o OASISbr não traz esse campo.`}>
-      <FrequencyLegend />
+      <FrequencyLegend ramp={TOPIC_RAMP} />
       {data.topics.length
-        ? <FrequencyTreemap items={topicItems} labelTitle="Tópico" shareTitle="% dos documentos com tópico" />
+        ? <FrequencyTreemap items={topicItems} labelTitle="Tópico" shareTitle="% dos documentos com tópico" ramp={TOPIC_RAMP} darkFrom={TOPIC_DARK_FROM} />
         : <Empty>Nenhum documento do OpenAlex com tópico neste recorte.</Empty>}
     </Panel>
 
