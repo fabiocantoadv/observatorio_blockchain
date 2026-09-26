@@ -5,6 +5,7 @@ import { AdminLoginModal } from './components/AdminLoginModal'
 import { ProfileModal } from './components/ProfileModal'
 import { DetailSections } from './components/DetailSections'
 import { PatentSections } from './components/PatentSections'
+import logoObservatorio from './assets/logo-observatorio-blockchain.png'
 
 const DATA_TABS = ['Publicações', 'Patentes']
 
@@ -213,9 +214,8 @@ export default function App() {
   return <main className="app-shell">
     <header className="site-header">
       <div className="site-header-inner">
-        <a className="brand" href="#inicio" aria-label="Observatório Blockchain — voltar à visão geral" onClick={(event) => { event.preventDefault(); navigate('Visão geral') }}>
-          <span className="brand-mark"><i></i><i></i><i></i></span>
-          <span>observatório<br/><b>blockchain</b></span>
+        <a className="brand" href="#inicio" aria-label="Observatório Nacional de Blockchain — voltar à visão geral" onClick={(event) => { event.preventDefault(); navigate('Visão geral') }}>
+          <img src={logoObservatorio} alt="Observatório Nacional de Blockchain" />
         </a>
         <nav aria-label="Navegação do dashboard">
           {[
