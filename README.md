@@ -1,8 +1,95 @@
-# Observatório Nacional de Blockchain — Produção Científica
+# Observatório Blockchain — Produção Científica
+
+Dashboard em React e Vega-Lite da produção científica brasileira sobre blockchain.
+
+## Rodar localmente
+
+```bash
+npm install
+npm run dev
+```
+
+Build de produção:
+
+```bash
+npm run build
+```
+
+Para testar o build com as rotas `/api` (que o `vite dev` não executa):
+
+```bash
+npm run build
+npm run serve   # http://localhost:3000
+```
+
+## Dados
+
+Os gráficos usam dados de três bases públicas: OpenAlex (artigos, capítulos e livros), OASISbr/IBICT (teses, dissertações e TCCs) e patentes (Google Patents, INPI, IBICT).
+
+Tudo fica em `src/data/observatorio.sql`, um banco SQLite com as tabelas:
+
+- `publicacoes`, `keywords_publicacao`, `patentes` — dados dos gráficos
+- `metadados` — configuração do painel (`profile`, `source`)
+- `usuarios` — login do admin (senha em hash scrypt)
+
+Apesar da extensão `.sql`, o arquivo é um banco SQLite binário. Abra com qualquer cliente SQLite:
+
+```bash
+sqlite3 src/data/observatorio.sql "SELECT tipo, COUNT(*) FROM publicacoes GROUP BY tipo;"
+```
+
+### Reconstruir a partir dos CSVs
+
+Os CSVs de origem não são versionados. Para reimportar do zero, coloque os três arquivos na raiz e rode `npm run build:data`:
+
+- `openalex_consolidado_2026_set.csv`
+- `oasisbr_consolidado_2026_set.csv`
+- `patentes_blockchain_GooglePatents_INPI_IBICT_fulldata_set_2026.csv`
+
+## Banco em produção (Turso)
+
+A camada de dados (`api/lib/db.mjs`) usa o cliente libSQL:
+
+- **Local:** sem variáveis de ambiente, lê o arquivo `src/data/observatorio.sql`.
+- **Produção:** conecta no Turso quando `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN` estão definidas. Leitura e escrita persistem.
+
+Configuração:
+
+```bash
+turso db create observatorioblockchain
+turso db show observatorioblockchain --url     # TURSO_DATABASE_URL
+turso db tokens create observatorioblockchain  # TURSO_AUTH_TOKEN
+```
+
+Popular o Turso com os dados locais:
+
+```bash
+TURSO_DATABASE_URL="libsql://...turso.io" TURSO_AUTH_TOKEN="..." node scripts/push-to-turso.mjs
+```
+
+Na Vercel, cadastre `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN` em Settings → Environment Variables (Production) e faça o redeploy.
+
+## Administração
+
+O menu **Administração** permite editar os dados do painel. O login é validado contra a tabela `usuarios`; ao publicar, a edição é gravada no banco (tabela `metadados`, chave `snapshot_override`).
+
+Criar ou atualizar o usuário admin:
+
+```bash
+SEED_ADMIN_USERNAME=admin SEED_ADMIN_PASSWORD="sua-senha" node scripts/migrate-usuarios.mjs
+```
+
+Alternativamente, o login aceita `ADMIN_USERNAME`/`ADMIN_PASSWORD` do ambiente.
+
+## Atribuição
+
+Fonte: [Produção Científica — Observatório Nacional de Blockchain](https://observatorioblockchain.org.br/producao-cientifica/). Uso livre com a devida atribuição.
+
+## Sobre a branch homol
 
 Painel da produção científica e das patentes brasileiras sobre blockchain, feito em React com gráficos Vega/Vega-Lite e dados em SQLite (local) ou Turso (produção).
 
-## O painel
+### O painel
 
 A barra de filtros tem duas abas, cada uma com seus filtros e o total do recorte:
 
@@ -20,7 +107,7 @@ A barra de filtros tem duas abas, cada uma com seus filtros e o total do recorte
 
 **Filtros cruzados:** os gráficos e tabelas também são filtros. Clicar em um tipo de documento, ano, organização, país, idioma, palavra-chave, tópico, afiliação ou autor (e, nas patentes, em ano, país ou titular) filtra o painel inteiro, inclusive o total e a listagem. Os filtros se somam, aparecem como etiquetas acima dos gráficos (× remove um, "Limpar todos" remove tudo), e clicar de novo no mesmo item desfaz a seleção. Cada gráfico é calculado com todos os filtros exceto o seu próprio, então o item escolhido fica destacado e os demais continuam visíveis, esmaecidos. Tudo é calculado no servidor a cada recorte.
 
-## Rodar localmente
+### Rodar localmente
 
 ```bash
 npm install --omit=dev
@@ -32,9 +119,9 @@ O `npm run dev` (Vite) sobe só a interface: as rotas `/api` não rodam nele e o
 
 `npm install` completo (com as dependências de desenvolvimento) só é necessário para `npm run build:data`, `scripts/migrate-usuarios.mjs` e `scripts/push-to-turso.mjs`, que usam o `better-sqlite3`.
 
-## Dados
+### Dados
 
-### Fontes (CSVs na raiz, versionados)
+#### Fontes (CSVs na raiz, versionados)
 
 | Arquivo | Fonte | Registros |
 |---|---|---|
@@ -44,7 +131,7 @@ O `npm run dev` (Vite) sobe só a interface: as rotas `/api` não rodam nele e o
 
 Consolidação de setembro/2026. Outros CSVs na raiz (cópias de segurança, exportações) são ignorados pelo git.
 
-### Banco (`src/data/observatorio.sql`)
+#### Banco (`src/data/observatorio.sql`)
 
 Apesar da extensão `.sql`, é um banco SQLite binário, gerado a partir dos CSVs:
 
@@ -61,13 +148,13 @@ Apesar da extensão `.sql`, é um banco SQLite binário, gerado a partir dos CSV
 sqlite3 src/data/observatorio.sql "SELECT tipo, COUNT(*) FROM publicacoes GROUP BY tipo;"
 ```
 
-### Cobertura de cada campo
+#### Cobertura de cada campo
 
 - **Palavras-chave e idioma:** só OASISbr (o CSV do OpenAlex não traz esses campos).
 - **Países dos autores, ORCID e tópicos:** só OpenAlex (no OASISbr o país é fixado como BR na importação).
 - **Afiliações:** OpenAlex (afiliação dos autores) e OASISbr (instituição de defesa).
 
-### Scripts
+#### Scripts
 
 | Comando | O que faz |
 |---|---|
@@ -82,7 +169,7 @@ Detalhes:
 - **ORCID:** lido das colunas `authorships_author_display_name` e `authorships_author_orcid` do CSV do OpenAlex. Quando o mesmo nome aparece com ORCIDs diferentes, fica o mais frequente; em caso de empate, o autor fica sem ORCID.
 - **Tópico principal:** campo `primary_topic.display_name` da API do OpenAlex, consultado pelos IDs das obras. Obras sem ID do OpenAlex ou não encontradas na API ficam sem tópico.
 
-## Rotas da API
+### Rotas da API
 
 | Rota | Retorno |
 |---|---|
@@ -94,7 +181,7 @@ Detalhes:
 
 Na Vercel, cada arquivo em `api/` vira uma função serverless; localmente, `scripts/serve-local.mjs` expõe as mesmas rotas.
 
-## Estrutura
+### Estrutura
 
 ```
 api/                 rotas da API (Vercel) e camada de dados (api/lib)
@@ -105,7 +192,7 @@ src/assets/          logo e imagem ilustrativa da rede
 src/data/            banco SQLite
 ```
 
-## Produção (Vercel + Turso)
+### Produção (Vercel + Turso)
 
 A camada de dados (`api/lib/db.mjs`) usa o cliente libSQL:
 
@@ -120,7 +207,7 @@ turso db show observatorioblockchain --url     # TURSO_DATABASE_URL
 turso db tokens create observatorioblockchain  # TURSO_AUTH_TOKEN
 ```
 
-### Publicar uma atualização
+#### Publicar uma atualização
 
 1. Junte a `homol` na `main` (pull request no GitHub). A Vercel publica o código automaticamente.
 2. Atualize os dados no Turso — o `git push` não altera o banco de produção:
@@ -134,10 +221,6 @@ turso db tokens create observatorioblockchain  # TURSO_AUTH_TOKEN
 
 > **Atenção:** o `push-to-turso.mjs` apaga e recria **todas** as tabelas no Turso, inclusive `usuarios` e `metadados`. A senha da Administração em produção passa a ser a do banco local, e edições feitas pela Administração em produção são perdidas. Antes de enviar, defina uma senha própria com `node scripts/migrate-usuarios.mjs` (não use a senha padrão).
 
-## Administração
+### Administração
 
 O menu **Administração** permite editar os dados do painel. O login é validado contra a tabela `usuarios` (ou contra `ADMIN_USERNAME`/`ADMIN_PASSWORD` do ambiente); ao publicar, a edição é gravada na tabela `metadados` (chave `snapshot_override`).
-
-## Atribuição
-
-Fonte: [Produção Científica — Observatório Nacional de Blockchain](https://observatorioblockchain.org.br/producao-cientifica/). Uso livre com a devida atribuição.
