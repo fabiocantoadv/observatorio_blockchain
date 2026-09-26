@@ -9,7 +9,6 @@ const AXIS_LABEL = '#3b4175'
 const AXIS_MUTED = '#5c6390'
 const GRID = '#e4e6f3'
 const fmt = (value) => new Intl.NumberFormat('pt-BR').format(value)
-const pct = (value) => `${(value * 100).toFixed(1).replace('.', ',')}%`
 
 function query(params) {
   const search = new URLSearchParams()
@@ -150,16 +149,11 @@ export function PatentSections({ ano, pais }) {
   if (error) return <p className="panel-note detail-error">{error}</p>
   if (!data || !specs) return <p className="panel-note detail-loading">Carregando patentes…</p>
 
-  const peak = data.byYear.reduce((best, y) => (y.count > (best?.count || 0) ? y : best), null)
-  const leader = data.byCountry[0]
   const leadHolder = data.byHolder[0]
 
   return <div className="patent-sections">
     <section className="metrics" aria-label="Resumo de patentes">
       <MetricCard label="Patentes mapeadas" value={fmt(data.total)} detail={`${fmt(data.applications)} números de pedido distintos`} />
-      <MetricCard label="Pico de depósitos" value={peak ? fmt(peak.count) : '—'} detail={peak ? `${peak.year} · patentes depositadas` : 'Sem dados'} accent="blue" />
-      <MetricCard label="País líder" value={leader ? leader.country : '—'} detail={leader ? `${fmt(leader.count)} patentes · ${pct(leader.count / data.total)}` : 'Sem dados'} accent="gold" />
-      <MetricCard label="Período coberto" value={data.period ? `${data.period[0]}—${data.period[1]}` : '—'} detail={`${fmt(data.brazil)} com titular no Brasil`} accent="pink" />
     </section>
 
     {data.total === 0 ? <Empty /> : <>
