@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parseCsvFile } from './lib/csv.mjs'
 import { hashPassword } from './lib/password.mjs'
+import { buildOrcidTable } from './lib/orcid.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dataDir = join(root, 'src', 'data')
@@ -91,6 +92,7 @@ async function main() {
     DROP TABLE IF EXISTS patentes;
     DROP TABLE IF EXISTS metadados;
     DROP TABLE IF EXISTS usuarios;
+    DROP TABLE IF EXISTS autores_orcid;
 
     CREATE TABLE metadados (
       chave TEXT PRIMARY KEY,
@@ -139,6 +141,11 @@ async function main() {
     CREATE INDEX idx_pub_tipo ON publicacoes(tipo);
     CREATE INDEX idx_pub_ano ON publicacoes(ano);
     CREATE INDEX idx_kw ON keywords_publicacao(keyword);
+
+    CREATE TABLE autores_orcid (
+      autor TEXT PRIMARY KEY,
+      orcid TEXT NOT NULL
+    );
   `)
 
   const insertPub = db.prepare(`
@@ -232,6 +239,11 @@ async function main() {
   console.log(`  publicações openalex: ${openalexRows.length}`)
   console.log(`  publicações oasisbr:  ${oasisbrRows.length}`)
   console.log(`  patentes:             ${patentRows.length}`)
+
+  const orcidRows = buildOrcidTable(openalexRows)
+  const insertOrcid = db.prepare('INSERT INTO autores_orcid (autor, orcid) VALUES (?, ?)')
+  db.transaction((rows) => { for (const [autor, orcid] of rows) insertOrcid.run(autor, orcid) })(orcidRows)
+  console.log(`  autores com ORCID:    ${orcidRows.length}`)
 
   const insertMeta = db.prepare(`INSERT INTO metadados (chave, valor) VALUES (?, ?)`)
   insertMeta.run('profile', JSON.stringify(previousMeta.profile || {

@@ -280,7 +280,7 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
       <Panel title="Afiliações" chip={`${fmt(data.institutions.length)} instituições`}>
         <DataTable columns={[{ key: 'name', label: 'Afiliação' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.institutions} exportName="afiliacoes.csv" />
       </Panel>
-      <Panel title="Autores" chip={`${fmt(data.authors.length)} autores`} note={`ORCID de ${fmt(data.authorsWithOrcid || 0)} autores, obtido no OpenAlex (só há ORCID para autores de registros do OpenAlex). Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.`}>
+      <Panel title="Autores" chip={`${fmt(data.authors.length)} autores`} note={`ORCID de ${fmt(data.authorsWithOrcid || 0)} autores, conforme os dados do OpenAlex (o OASISbr não traz ORCID). Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.`}>
         <DataTable
           columns={[
             { key: 'name', label: 'Autor' },

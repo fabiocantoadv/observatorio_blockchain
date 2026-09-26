@@ -8,3 +8,6 @@ dist
 
 # Source CSVs — only needed to rebuild observatorio.sql from scratch (not versioned)
 *.csv
+
+# macOS
+.DS_Store

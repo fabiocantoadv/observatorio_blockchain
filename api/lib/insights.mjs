@@ -80,8 +80,8 @@ function cleanKeyword(raw) {
 }
 
 let recordsPromise = null
-// ORCID por nome de autor (tabela autores_orcid, preenchida por scripts/fetch-orcid.mjs a partir
-// da API do OpenAlex). Chave: nome em minúsculas com espaços normalizados.
+// ORCID por nome de autor (tabela autores_orcid, criada a partir das colunas de ORCID do CSV
+// do OpenAlex por scripts/build-database.mjs ou scripts/import-orcid.mjs). Chave: nome em minúsculas com espaços normalizados.
 let orcidByName = new Map()
 
 function authorKey(name) {

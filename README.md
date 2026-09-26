@@ -40,10 +40,10 @@ sqlite3 src/data/observatorio.sql "SELECT tipo, COUNT(*) FROM publicacoes GROUP 
 
 ### ORCID dos autores
 
-A tabela `autores_orcid` guarda o ORCID dos autores das publicações do OpenAlex. Ela é preenchida consultando a API do OpenAlex pelos IDs das obras já presentes no banco:
+A tabela `autores_orcid` guarda o ORCID dos autores das publicações do OpenAlex, lido das colunas `authorships_author_display_name` e `authorships_author_orcid` do CSV do OpenAlex. Ela é criada pelo `npm run build:data` e pode ser recriada sozinha com:
 
 ```bash
-npm run fetch:orcid
+npm run import:orcid
 ```
 
 ### Reconstruir a partir dos CSVs
