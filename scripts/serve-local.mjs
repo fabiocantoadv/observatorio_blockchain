@@ -23,6 +23,8 @@ const MIME = {
 const apiHandlers = {
   '/api/data': () => import('../api/data.js'),
   '/api/auth': () => import('../api/auth.js'),
+  '/api/insights': () => import('../api/insights.js'),
+  '/api/publicacoes': () => import('../api/publicacoes.js'),
 }
 
 function decorate(req, res) {
@@ -81,5 +83,5 @@ if (!existsSync(distDir)) {
 
 server.listen(port, () => {
   console.log(`Servidor local em http://localhost:${port}`)
-  console.log('APIs: /api/data (lê do observatorio.sql) e /api/auth')
+  console.log('APIs: /api/data, /api/insights, /api/publicacoes (lêem do observatorio.sql) e /api/auth')
 })

@@ -6,7 +6,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const localFile = join(here, '..', '..', 'src', 'data', 'observatorio.sql')
 
 let clientPromise = null
-async function db() {
+export async function db() {
   if (clientPromise) return clientPromise
   const url = process.env.TURSO_DATABASE_URL
   clientPromise = (async () => {

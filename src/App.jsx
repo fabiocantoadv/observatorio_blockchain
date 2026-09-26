@@ -3,6 +3,7 @@ import { VegaChart } from './components/VegaChart'
 import { AdminPanel } from './components/AdminPanel'
 import { AdminLoginModal } from './components/AdminLoginModal'
 import { ProfileModal } from './components/ProfileModal'
+import { DetailSections, GroupLegend, GROUP_COLORS } from './components/DetailSections'
 
 const defaultProfile = { name: 'Administrador', initials: 'AD', photo: '' }
 
@@ -170,7 +171,7 @@ export default function App() {
     encoding: {
       y: { field: 'keyword', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#3b4175', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
       x: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false, tickCount: 8 } },
-      color: { field: 'group', type: 'nominal', scale: { domain: ['Tecnologia', 'Aplicações', 'Dados', 'Governança', 'Economia'], range: ['#001eff', '#00f0dc', '#ffff00', '#6678ff', '#0a0a8c'] }, legend: null },
+      color: { field: 'group', type: 'nominal', scale: { domain: Object.keys(GROUP_COLORS), range: Object.values(GROUP_COLORS).map((c) => c.fill) }, legend: null },
       tooltip: [{ field: 'keyword', title: 'Palavra-chave' }, { field: 'documents', title: 'Documentos' }, { field: 'group', title: 'Tema' }]
     },
     config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }
@@ -306,6 +307,7 @@ export default function App() {
       <section className="lower-grid single">
         <article className="panel keywords-panel">
           <div className="panel-heading"><div><p className="section-label">ASSUNTOS</p><h2>Palavras-chave em destaque</h2></div><button className="more" aria-label="Mais opções">•••</button></div>
+          <GroupLegend/>
           <VegaChart spec={keywordSpec}/>
         </article>
       </section>
@@ -315,7 +317,9 @@ export default function App() {
           <div className="panel-heading"><div><p className="section-label">PATENTES</p><h2>Depósitos por país do titular</h2></div><span className="data-chip">{compact(patents.total)} patentes</span></div>
           <VegaChart spec={patentCountrySpec}/>
         </article>
-      </section>}</div> : <section className="about-panel" id="dashboard-content">
+      </section>}
+
+      <DetailSections selectedType={selectedType} selectedYear={selectedYear} /></div> : <section className="about-panel" id="dashboard-content">
         <p className="section-label">TRANSPARÊNCIA</p>
         <h2>Sobre os dados</h2>
         <p>Esta visualização consolida a produção científica e as patentes sobre blockchain a partir de três bases públicas: OpenAlex, OASISbr (IBICT) e uma base de patentes de Google Patents, INPI e IBICT. Os dados são ingeridos dos arquivos CSV para um banco SQLite, que alimenta os gráficos.</p>

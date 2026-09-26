@@ -46,6 +46,12 @@ Os CSVs de origem não são versionados. Para reimportar do zero, coloque os tr�
 - `oasisbr_consolidado_2026_set.csv`
 - `patentes_blockchain_GooglePatents_INPI_IBICT_fulldata_set_2026.csv`
 
+## Rotas da API
+
+- `GET /api/data` — agregados do painel principal (tipos, anos, palavras-chave, patentes).
+- `GET /api/insights?tipo=&ano=` — agregados replicados do painel Kibana (organizações, afiliações, autores, países, idioma, 50 palavras-chave), filtrados por tipo e ano.
+- `GET /api/publicacoes?tipo=&ano=&q=&page=&size=` — listagem paginada com busca; `&format=csv` exporta o recorte.
+
 ## Banco em produção (Turso)
 
 A camada de dados (`api/lib/db.mjs`) usa o cliente libSQL:
