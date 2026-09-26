@@ -310,7 +310,6 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
             <img src={networkIllustration} alt="Ilustração de uma rede de coautoria, com pesquisadores como nós coloridos por grupo e ligados por linhas" />
             <span className="network-tag">Imagem ilustrativa</span>
           </a>
-          <p className="panel-note">Mapa de coautoria no VOSviewer, o mesmo publicado no painel Kibana do observatório.</p>
           <a className="network-link" href={NETWORK_URL} target="_blank" rel="noreferrer">Abrir a rede <span>↗</span></a>
         </article>
       </div>

@@ -239,3 +239,4 @@ footer { color: var(--muted); }
 .treemap-panel > .panel-note { margin-top:12px; padding-top:0; }
 @media (max-width:720px) { .network-panel { min-height:0; } .treemap-panel .treemap-wrap { min-height:420px; } }
 .detail-grid .panel .treemap-canvas .vega-chart { margin-top:0; }
+.network-panel .network-preview { margin-bottom:16px; }
