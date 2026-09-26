@@ -6,8 +6,12 @@ dist
 *.sql-wal
 *.sql-shm
 
-# Source CSVs — only needed to rebuild observatorio.sql from scratch (not versioned)
+# CSVs de origem: os três arquivos usados pelo `npm run build:data` são versionados;
+# outros CSVs (cópias de segurança, exportações) continuam ignorados.
 *.csv
+!/openalex_consolidado_2026_set.csv
+!/oasisbr_consolidado_2026_set.csv
+!/patentes_blockchain_GooglePatents_INPI_IBICT_fulldata_set_2026.csv
 
 # macOS
 .DS_Store

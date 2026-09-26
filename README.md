@@ -57,7 +57,7 @@ npm run build:data     # leva a coluna ao banco
 
 ### Reconstruir a partir dos CSVs
 
-Os CSVs de origem não são versionados. Para reimportar do zero, coloque os três arquivos na raiz e rode `npm run build:data`:
+Os três CSVs de origem ficam na raiz do projeto e são versionados. Para reconstruir o banco a partir deles, rode `npm run build:data`:
 
 - `openalex_consolidado_2026_set.csv`
 - `oasisbr_consolidado_2026_set.csv`
