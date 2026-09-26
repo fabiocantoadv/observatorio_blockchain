@@ -252,17 +252,7 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
   if (error) return <p className="panel-note detail-error">{error}</p>
   if (!data || !specs) return <p className="panel-note detail-loading">Carregando indicadores detalhados…</p>
 
-  const topKeywords = data.keywords.slice(0, 5)
-
   return <div className="detail-sections">
-    {topKeywords.length > 0 && <section className="kw-tiles" aria-label="Documentos por palavras-chave">
-      {topKeywords.map((k) => <article key={k.keyword} className="kw-tile" style={{ '--tile-accent': GROUP_COLORS[k.group]?.fill || '#001eff' }}>
-        <strong>{fmt(k.documents)}</strong>
-        <span>{k.keyword}</span>
-        <small>documentos · {k.group}</small>
-      </article>)}
-    </section>}
-
     <section className="detail-grid wide-left">
       <Panel label="INSTITUIÇÕES" title="Organizações" chip="Top 20" note={`Afiliação informada em ${fmt(data.coverage.institutions)} de ${fmt(data.total)} documentos. Cada documento conta uma vez por instituição.`}>
         {data.institutions.length ? <VegaChart spec={specs.orgs} /> : <Empty />}
