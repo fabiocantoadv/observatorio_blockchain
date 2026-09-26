@@ -240,10 +240,14 @@ function PublicationsTable({ filters }) {
   </div>
 }
 
+const LIGHT_FILLS = new Set(['#ffff00', '#00f0dc'])
+
 export function DetailSections({ filters, onFilter, onSummary }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [yearSort, setYearSort] = useState('cronologica')
+  const [typeChart, setTypeChart] = useState('rosca')
+  const [typeValues, setTypeValues] = useState(false)
   const filterKey = JSON.stringify(filters)
   const sel = (key) => (filters[key] && filters[key] !== 'Todos' ? String(filters[key]) : '')
 
@@ -264,7 +268,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
     const langTotal = data.languages.reduce((sum, l) => sum + l.documents, 0)
     const languages = data.languages.map((l) => ({ ...l, language: LANGUAGE_LABELS[l.code] || l.code.toUpperCase(), share: l.documents / langTotal }))
     const typeTotal = data.byType.reduce((sum, t) => sum + t.count, 0)
-    const types = data.byType.map((t) => ({ ...t, share: t.count / typeTotal }))
+    const types = data.byType.map((t, idx) => ({ ...t, idx, share: t.count / typeTotal, label: fmt(t.count), ringLabel: t.count / typeTotal >= 0.04 ? fmt(t.count) : '', labelColor: LIGHT_FILLS.has(t.color) ? '#0a0a8c' : '#ffffff' }))
     const selType = sel('tipo')
     const selYear = sel('ano')
     const selLang = sel('idioma')
@@ -272,17 +276,36 @@ export function DetailSections({ filters, onFilter, onSummary }) {
       ? { condition: { test: `datum[${JSON.stringify(field)}] == ${JSON.stringify(value)}`, value: 1 }, value: DIM_OPACITY }
       : { value: 1 }
     return {
-      types: {
+      types: typeChart === 'colunas' ? {
         $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
-        background: 'transparent', width: 300, height: 245,
+        background: 'transparent', width: 'container', height: 260,
         data: { values: types },
-        mark: { type: 'arc', innerRadius: 72, stroke: '#ffffff', strokeWidth: 2, cursor: 'pointer' },
         encoding: {
-          theta: { field: 'count', type: 'quantitative' },
-          color: { field: 'type', type: 'nominal', scale: { domain: types.map((t) => t.type), range: types.map((t) => t.color) }, legend: null },
+          x: { field: 'type', type: 'nominal', sort: [...types].sort((a, b) => b.count - a.count).map((t) => t.type), axis: { title: null, labelColor: AXIS_MUTED, labelAngle: 0, labelPadding: 8, labelLimit: 90, domain: false, ticks: false } },
+          y: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: AXIS_MUTED, gridColor: GRID, domain: false, ticks: false, tickCount: 6, labelExpr: "replace(datum.label, ',', '.')" }, scale: { zero: true } },
           opacity: highlight('type', selType),
           tooltip: [{ field: 'type', title: 'Tipo' }, { field: 'count', title: 'Documentos', format: ',' }, { field: 'share', title: '% do total', format: '.1%' }],
         },
+        layer: [
+          { mark: { type: 'bar', cornerRadiusEnd: 4, width: { band: 0.66 }, stroke: '#0a0a8c', strokeOpacity: 0.15, cursor: 'pointer' }, encoding: { color: { field: 'type', type: 'nominal', scale: { domain: types.map((t) => t.type), range: types.map((t) => t.color) }, legend: null } } },
+          ...(typeValues ? [{ mark: { type: 'text', dy: -7, color: '#0a0a8c', fontSize: 11, fontWeight: 700, font: 'Manrope, Arial, sans-serif', cursor: 'pointer' }, encoding: { text: { field: 'label' } } }] : []),
+        ],
+        config: { axis: { labelFont: 'Manrope, Arial, sans-serif', labelFontSize: 11 }, view: { stroke: null } },
+      } : {
+        $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
+        background: 'transparent', width: 300, height: 245,
+        data: { values: types },
+        encoding: {
+          theta: { field: 'count', type: 'quantitative', stack: true },
+          order: { field: 'idx', type: 'quantitative' },
+          opacity: highlight('type', selType),
+          tooltip: [{ field: 'type', title: 'Tipo' }, { field: 'count', title: 'Documentos', format: ',' }, { field: 'share', title: '% do total', format: '.1%' }],
+        },
+        layer: [
+          { mark: { type: 'arc', innerRadius: 72, stroke: '#ffffff', strokeWidth: 2, cursor: 'pointer' }, encoding: { color: { field: 'type', type: 'nominal', scale: { domain: types.map((t) => t.type), range: types.map((t) => t.color) }, legend: null } } },
+          // Valores dentro do anel; fatias muito finas (menos de 4%) ficam só na legenda.
+          ...(typeValues ? [{ mark: { type: 'text', radius: 97, fontSize: 11, fontWeight: 800, font: 'Manrope, Arial, sans-serif', cursor: 'pointer' }, encoding: { text: { field: 'ringLabel' }, color: { field: 'labelColor', type: 'nominal', scale: null } } }] : []),
+        ],
         view: { stroke: null },
       },
       typeRows: types,
@@ -323,7 +346,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
       },
       languageRows: languages,
     }
-  }, [data, yearSort])
+  }, [data, yearSort, typeChart, typeValues])
 
   if (error) return <p className="panel-note detail-error">{error}</p>
   if (!data || !specs) return <p className="panel-note detail-loading">Carregando indicadores detalhados…</p>
@@ -346,8 +369,18 @@ export function DetailSections({ filters, onFilter, onSummary }) {
   return <div className="detail-sections">
     <section className="main-grid">
       <article className="panel composition-panel">
-        <div className="panel-heading"><div><h2>Tipos de documentos</h2></div><div className="panel-actions">{selType && <button type="button" className="chart-clear" onClick={clear('tipo')} title="Remover o filtro deste gráfico">× Limpar filtro</button>}<span className="data-chip">{selType || 'Todos os tipos'}</span></div></div>
-        <div className="donut-layout">
+        <div className="panel-heading"><div><h2>Tipos de documentos</h2></div>
+          <div className="panel-actions">
+            {selType && <button type="button" className="chart-clear" onClick={clear('tipo')} title="Remover o filtro deste gráfico">× Limpar filtro</button>}
+            <label className="chart-check"><input type="checkbox" checked={typeValues} onChange={(e) => setTypeValues(e.target.checked)} /> Mostrar valores</label>
+            <div className="sort-toggle" role="group" aria-label="Modelo do gráfico">
+              {[['rosca', 'Rosca'], ['colunas', 'Colunas']].map(([value, label]) => <button key={value} className={typeChart === value ? 'active' : ''} aria-pressed={typeChart === value} onClick={() => setTypeChart(value)}>{label}</button>)}
+            </div>
+          </div>
+        </div>
+        {typeChart === 'colunas'
+          ? <div className="type-columns"><VegaChart spec={specs.types} onClick={(d) => d.type && pick('tipo')(d.type)} /><p className="panel-note">Clique numa coluna para filtrar o painel pelo tipo.</p></div>
+          : <div className="donut-layout">
           <div className="donut-wrap"><VegaChart spec={specs.types} onClick={(d) => d.type && pick('tipo')(d.type)} /><div className="donut-total"><strong>{fmt(data.total)}</strong><span>documentos</span></div></div>
           <ul className="legend-list">
             {specs.typeRows.map((item) => <li key={item.type} className={selType && selType !== item.type ? 'dimmed' : ''}>
@@ -356,7 +389,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
               </button>
             </li>)}
           </ul>
-        </div>
+        </div>}
       </article>
       <article className="panel trend-panel">
         <div className="panel-heading"><div><h2>Publicações por ano</h2></div>

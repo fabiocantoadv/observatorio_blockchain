@@ -282,3 +282,7 @@ footer { color: var(--muted); }
 .composition-panel .legend-list b { font-size:11px; }
 .composition-panel .legend-list small { font-size:10px; }
 @media (min-width: 721px) { .composition-panel .legend-list { padding-left:28px; } }
+/* Tipos de documentos: caixa "Mostrar valores" e modo colunas */
+.chart-check { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; color:var(--muted); cursor:pointer; white-space:nowrap; }
+.chart-check input { accent-color:#001eff; margin:0; width:13px; height:13px; cursor:pointer; }
+.type-columns .vega-chart { margin-top:18px; width:100%; }
