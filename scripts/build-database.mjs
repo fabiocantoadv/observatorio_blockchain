@@ -117,7 +117,8 @@ async function main() {
       instituicoes TEXT,
       paises TEXT,
       citacoes INTEGER,
-      idioma TEXT
+      idioma TEXT,
+      topico_principal TEXT
     );
 
     CREATE TABLE keywords_publicacao (
@@ -149,8 +150,8 @@ async function main() {
   `)
 
   const insertPub = db.prepare(`
-    INSERT INTO publicacoes (fonte, external_id, titulo, tipo_original, tipo, ano, doi, autores, instituicoes, paises, citacoes, idioma)
-    VALUES (@fonte, @external_id, @titulo, @tipo_original, @tipo, @ano, @doi, @autores, @instituicoes, @paises, @citacoes, @idioma)
+    INSERT INTO publicacoes (fonte, external_id, titulo, tipo_original, tipo, ano, doi, autores, instituicoes, paises, citacoes, idioma, topico_principal)
+    VALUES (@fonte, @external_id, @titulo, @tipo_original, @tipo, @ano, @doi, @autores, @instituicoes, @paises, @citacoes, @idioma, @topico_principal)
   `)
   const insertKw = db.prepare(`INSERT INTO keywords_publicacao (publicacao_id, keyword, grupo) VALUES (?, ?, ?)`)
   const insertPat = db.prepare(`
@@ -182,6 +183,7 @@ async function main() {
         paises: (o.authorships_countries || '').trim() || null,
         citacoes: Number.parseInt(o.cited_by_count, 10) || 0,
         idioma: null,
+        topico_principal: (o.primary_topic || '').trim() || null,
       })
     }
   })
@@ -203,6 +205,7 @@ async function main() {
         paises: 'BR',
         citacoes: 0,
         idioma: (o.idioma || '').trim() || null,
+        topico_principal: null,
       })
       const pubId = info.lastInsertRowid
       const seen = new Set()

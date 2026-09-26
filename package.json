@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "build:data": "node scripts/build-database.mjs",
     "serve": "node scripts/serve-local.mjs",
-    "import:orcid": "node scripts/import-orcid.mjs"
+    "import:orcid": "node scripts/import-orcid.mjs",
+    "fetch:topics": "node scripts/fetch-primary-topic.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

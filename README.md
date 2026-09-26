@@ -46,6 +46,15 @@ A tabela `autores_orcid` guarda o ORCID dos autores das publicações do OpenAle
 npm run import:orcid
 ```
 
+### Tópico principal (OpenAlex)
+
+A coluna `primary_topic` do CSV do OpenAlex (e `publicacoes.topico_principal` no banco) vem do campo `primary_topic.display_name` da API do OpenAlex, consultado pelos IDs das obras. Para recoletar:
+
+```bash
+npm run fetch:topics   # atualiza o CSV (guarda uma cópia *.antes_primary_topic.csv)
+npm run build:data     # leva a coluna ao banco
+```
+
 ### Reconstruir a partir dos CSVs
 
 Os CSVs de origem não são versionados. Para reimportar do zero, coloque os três arquivos na raiz e rode `npm run build:data`:
