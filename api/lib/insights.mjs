@@ -93,7 +93,7 @@ async function loadRecords() {
   recordsPromise = (async () => {
     const conn = await db()
     const pubs = await conn.execute(
-      'SELECT id, fonte, titulo, tipo, ano, doi, autores, instituicoes, paises, idioma FROM publicacoes'
+      'SELECT id, fonte, titulo, tipo, ano, doi, autores, instituicoes, paises, idioma, topico_principal FROM publicacoes'
     )
     const kws = await conn.execute('SELECT publicacao_id, keyword, grupo FROM keywords_publicacao')
     try {
@@ -126,6 +126,7 @@ async function loadRecords() {
         countries: parseCountries(r.paises, fonte),
         languages: parseLanguages(r.idioma),
         keywords: kwByPub.get(id) || [],
+        topic: r.topico_principal ? String(r.topico_principal) : '',
       }
     })
   })()
@@ -168,6 +169,7 @@ export async function buildInsights(filters) {
   const withLanguage = records.filter((r) => r.languages.length)
   const withInstitution = records.filter((r) => r.institutions.length)
   const withKeywords = records.filter((r) => r.keywords.length)
+  const withTopic = records.filter((r) => r.topic)
 
   const keywordRows = countBy(records, (r) => r.keywords.map((k) => ({ key: k.keyword.toLowerCase(), ...k })), 50)
     .map(({ label, documents }) => ({ keyword: label.keyword, group: label.group, documents }))
@@ -179,6 +181,7 @@ export async function buildInsights(filters) {
       countries: withCountry.length,
       languages: withLanguage.length,
       keywords: withKeywords.length,
+      topics: withTopic.length,
     },
     institutions: countBy(records, (r) => r.institutions).map(({ label, documents }) => ({ name: label, documents })),
     authors: countBy(records, (r) => r.authors).map(({ label, documents }) => ({ name: label, documents, orcid: orcidByName.get(authorKey(label)) || '' })),
@@ -189,6 +192,8 @@ export async function buildInsights(filters) {
       ...(records.length - withLanguage.length ? [{ code: 'na', documents: records.length - withLanguage.length }] : []),
     ],
     keywords: keywordRows,
+    // Tópico principal do OpenAlex (primary_topic): todos os tópicos, do mais ao menos frequente.
+    topics: countBy(withTopic, (r) => [r.topic]).map(({ label, documents }) => ({ topic: label, documents })),
   }
 }
 

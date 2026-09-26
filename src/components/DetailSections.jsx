@@ -20,6 +20,8 @@ const LANGUAGE_COLORS = { por: '#001eff', eng: '#00f0dc', spa: '#ffff00', ita: '
 // Mesma altura para os dois gráficos de barras lado a lado.
 const BAR_ROW_HEIGHT = 440
 const TREEMAP_HEIGHT = 560
+const TOPICS_SHOWN = 60
+const KEYWORD_TOOLTIP = [['Tema', 'group']]
 
 const AXIS_LABEL = '#3b4175'
 const AXIS_MUTED = '#5c6390'
@@ -97,8 +99,11 @@ function horizontalBar(values, { field, label, color, height, tooltipTitle, shar
   }
 }
 
-function KeywordTreemap({ keywords }) {
-  // O treemap ocupa toda a altura disponível no cartão (que estica para acompanhar a coluna ao lado).
+// Treemap genérico por frequência. items: [{ label, documents, ...campos extras }].
+// tooltipFields: [[título, campo]] exibidos além do rótulo e da contagem; shareTitle: rótulo do percentual.
+const NO_FIELDS = []
+function FrequencyTreemap({ items: keywords, labelTitle, tooltipFields = NO_FIELDS, shareTitle }) {
+  // O treemap ocupa toda a altura do contêiner (definida pelo CSS de .treemap-wrap).
   const [ref, { width, height: boxHeight }] = useContainerSize()
   const height = boxHeight || TREEMAP_HEIGHT // a altura mínima vem do CSS (.treemap-wrap)
   const total = keywords.reduce((sum, k) => sum + k.documents, 0)
@@ -114,7 +119,7 @@ function KeywordTreemap({ keywords }) {
     data: [
       {
         name: 'tree',
-        values: [{ id: 'root' }, ...keywords.map((k, i) => ({ id: `k${i}`, parent: 'root', ...k, share: k.documents / total }))],
+        values: [{ id: 'root' }, ...keywords.map((k, i) => ({ id: `k${i}`, parent: 'root', ...k, share: k.documents / (k.shareBase || total) }))],
         transform: [
           { type: 'stratify', key: 'id', parentKey: 'parent' },
           { type: 'treemap', field: 'documents', sort: { field: 'value', order: 'descending' }, round: true, method: 'squarify', ratio: 1.4, paddingInner: 2, size: [{ signal: 'width' }, { signal: 'height' }] },
@@ -134,7 +139,7 @@ function KeywordTreemap({ keywords }) {
           enter: {
             x: { field: 'x0' }, y: { field: 'y0' }, x2: { field: 'x1' }, y2: { field: 'y1' },
             fill: { scale: 'fill', field: 'documents' }, stroke: { value: '#ffffff' }, strokeWidth: { value: 2 }, cornerRadius: { value: 4 },
-            tooltip: { signal: "{'Palavra-chave': datum.keyword, 'Documentos': datum.documents, 'Tema': datum.group, '% do top 50': format(datum.share, '.1%')}" },
+            tooltip: { signal: `{${[`'${labelTitle}': datum.label`, "'Documentos': datum.documents", ...tooltipFields.map(([t, f]) => `'${t}': datum.${f}`), `'${shareTitle}': format(datum.share, '.1%')`].join(', ')}}` },
           },
           hover: { fillOpacity: { value: 0.8 } },
           update: { fillOpacity: { value: 1 } },
@@ -145,7 +150,7 @@ function KeywordTreemap({ keywords }) {
         encode: {
           enter: {
             x: { signal: 'datum.x0 + 7' }, y: { signal: 'datum.y0 + 17' },
-            text: { field: 'keyword' }, fill: { signal: `scale('pos', datum.documents) > ${FREQ_DARK_FROM} ? '#ffffff' : '#1f2a33'` },
+            text: { field: 'label' }, fill: { signal: `scale('pos', datum.documents) > ${FREQ_DARK_FROM} ? '#ffffff' : '#1f2a33'` },
             font: { value: 'Manrope, Arial, sans-serif' }, fontSize: { value: 12 }, fontWeight: { value: 700 },
             limit: { signal: 'datum.x1 - datum.x0 - 12' },
             opacity: { signal: '(datum.x1 - datum.x0) > 46 && (datum.y1 - datum.y0) > 24 ? 1 : 0' },
@@ -164,7 +169,7 @@ function KeywordTreemap({ keywords }) {
         },
       },
     ],
-  }) : null, [keywords, width, height, total, lo, hi])
+  }) : null, [keywords, width, height, total, lo, hi, labelTitle, shareTitle, tooltipFields])
   return <div ref={ref} className="treemap-wrap"><div className="treemap-canvas">{spec && keywords.length ? <VegaChart spec={spec} /> : null}</div></div>
 }
 
@@ -264,6 +269,10 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
   if (error) return <p className="panel-note detail-error">{error}</p>
   if (!data || !specs) return <p className="panel-note detail-loading">Carregando indicadores detalhados…</p>
 
+  const keywordItems = data.keywords.map((k) => ({ label: k.keyword, documents: k.documents, group: k.group }))
+  const topicTotal = data.topics.reduce((sum, t) => sum + t.documents, 0)
+  const topicItems = data.topics.slice(0, TOPICS_SHOWN).map((t) => ({ label: t.topic, documents: t.documents, shareBase: topicTotal }))
+
   // Layout em pares de altura parecida (barras com barras, tabela com tabela) e
   // cartões esticados na mesma linha, para não sobrar espaço em branco.
   return <div className="detail-sections">
@@ -315,9 +324,16 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
       </div>
       <Panel className="treemap-panel" title="Palavras-chave (50 mais utilizadas)" note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
         <FrequencyLegend />
-        {data.keywords.length ? <KeywordTreemap keywords={data.keywords} /> : <Empty>Nenhuma palavra-chave neste recorte (só o OASISbr traz palavras-chave).</Empty>}
+        {data.keywords.length ? <FrequencyTreemap items={keywordItems} labelTitle="Palavra-chave" tooltipFields={KEYWORD_TOOLTIP} shareTitle="% do top 50" /> : <Empty>Nenhuma palavra-chave neste recorte (só o OASISbr traz palavras-chave).</Empty>}
       </Panel>
     </section>
+
+    <Panel className="full-width topics-panel" title="Tópicos" chip={data.topics.length > TOPICS_SHOWN ? `${TOPICS_SHOWN} de ${fmt(data.topics.length)} tópicos` : `${fmt(data.topics.length)} tópicos`} note={`Tópico principal (primary topic) atribuído pelo OpenAlex a ${fmt(data.coverage.topics)} documentos. Percentuais sobre os documentos com tópico; o OASISbr não traz esse campo.`}>
+      <FrequencyLegend />
+      {data.topics.length
+        ? <FrequencyTreemap items={topicItems} labelTitle="Tópico" shareTitle="% dos documentos com tópico" />
+        : <Empty>Nenhum documento do OpenAlex com tópico neste recorte.</Empty>}
+    </Panel>
 
     <Panel className="full-width" title="Listagem das publicações">
       <PublicationsTable selectedType={selectedType} selectedYear={selectedYear} />

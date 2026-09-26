@@ -245,3 +245,10 @@ footer { color: var(--muted); }
 .site-header .brand { background:#fff; border-radius:10px; padding:6px 12px; line-height:0; box-shadow:0 0 0 1px rgba(255,255,255,.2); }
 .site-header .brand img { display:block; height:38px; width:auto; }
 @media (max-width:720px) { .site-header .brand { padding:5px 9px; } .site-header .brand img { height:30px; } }
+
+/* Treemap de tópicos em largura total */
+.topics-panel { display:flex; flex-direction:column; }
+.topics-panel .treemap-wrap { position:relative; height:480px; min-height:0; }
+.topics-panel .treemap-canvas { position:absolute; inset:0; }
+.topics-panel .treemap-canvas .vega-chart { margin-top:0; }
+@media (max-width:720px) { .topics-panel .treemap-wrap { height:420px; } }
