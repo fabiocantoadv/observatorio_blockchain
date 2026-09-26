@@ -19,6 +19,8 @@ const TOPIC_DARK_FROM = 0.78
 const NETWORK_URL = 'https://app.vosviewer.com/?json=https%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D1ETJSDQR_xOOfvf1A4gHdX5zCqQ55Za1a'
 
 const LANGUAGE_LABELS = { por: 'Português', eng: 'Inglês', spa: 'Espanhol', ita: 'Italiano', fra: 'Francês', deu: 'Alemão', ara: 'Árabe', cat: 'Catalão', kor: 'Coreano', na: 'Não informado' }
+// Siglas do eixo no modo colunas.
+const LANGUAGE_SHORT = { por: 'BR', eng: 'EN', spa: 'ES', ita: 'IT', fra: 'FR', deu: 'DE', ara: 'AR', cat: 'CA', kor: 'KO', na: 'N/A' }
 const LANGUAGE_COLORS = { por: '#001eff', eng: '#00f0dc', spa: '#ffff00', ita: '#6678ff', fra: '#0a0a8c', deu: '#00a99d', ara: '#3b4bd8', cat: '#7fe9dc', kor: '#8c90b8', na: '#cfd3ea' }
 
 // Mesma altura para os dois gráficos de barras lado a lado.
@@ -247,6 +249,9 @@ const LIGHT_FILLS = new Set(['#ffff00', '#00f0dc', '#cfd3ea'])
 // Gráfico de categorias em rosca ou colunas, com opção de mostrar os valores.
 // rows: [{ key, name, value, color, share }]; o clique devolve datum.key.
 function categoryChart(rows, { mode, showValues, selected, title, width, height, innerRadius, wrapLabels = false }) {
+  // Rótulo curto no eixo das colunas (ex.: siglas dos idiomas), quando a linha tiver `short`.
+  const shortNames = Object.fromEntries(rows.filter((r) => r.short).map((r) => [r.name, r.short]))
+  const hasShort = Object.keys(shortNames).length > 0
   const data = rows.map((r, idx) => ({
     ...r, idx, label: fmt(r.value),
     ringLabel: r.share >= 0.04 ? fmt(r.value) : '',
@@ -264,7 +269,7 @@ function categoryChart(rows, { mode, showValues, selected, title, width, height,
       background: 'transparent', width: 'container', height: 260,
       data: { values: data },
       encoding: {
-        x: { field: 'name', type: 'nominal', sort: [...data].sort((a, b) => b.value - a.value).map((r) => r.name), axis: { title: null, labelColor: AXIS_MUTED, labelAngle: 0, labelPadding: 8, labelLimit: 90, domain: false, ticks: false, ...(wrapLabels ? { labelExpr: "split(datum.label, ' ')" } : {}) } },
+        x: { field: 'name', type: 'nominal', sort: [...data].sort((a, b) => b.value - a.value).map((r) => r.name), axis: { title: null, labelColor: AXIS_MUTED, labelAngle: 0, labelPadding: 8, labelLimit: 90, domain: false, ticks: false, ...(hasShort ? { labelExpr: `${JSON.stringify(shortNames)}[datum.label] || datum.label`, labelFontWeight: 700 } : wrapLabels ? { labelExpr: "split(datum.label, ' ')" } : {}) } },
         y: { field: 'value', type: 'quantitative', axis: { title: null, labelColor: AXIS_MUTED, gridColor: GRID, domain: false, ticks: false, tickCount: 6, labelExpr: "replace(datum.label, ',', '.')" }, scale: { zero: true } },
         opacity, tooltip,
       },
@@ -365,8 +370,8 @@ export function DetailSections({ filters, onFilter, onSummary }) {
       },
       orgs: horizontalBar(orgs, { field: 'documents', label: 'name', color: '#001eff', height: BAR_ROW_HEIGHT, tooltipTitle: 'Instituição', selected: sel('instituicao') }),
       countries: horizontalBar(countries, { field: 'documents', label: 'country', color: '#0a0a8c', height: BAR_ROW_HEIGHT, tooltipTitle: 'País', shareField: 'share', selected: sel('pais'), selectField: 'code' }),
-      languages: categoryChart(languages.map((l) => ({ key: l.code, name: l.language, value: l.documents, color: LANGUAGE_COLORS[l.code] || '#8c90b8', share: l.share })), {
-        mode: langChart, showValues: langValues, selected: selLang, title: 'Idioma', width: 220, height: 220, innerRadius: 58, wrapLabels: true,
+      languages: categoryChart(languages.map((l) => ({ key: l.code, name: l.language, short: LANGUAGE_SHORT[l.code] || l.code.toUpperCase(), value: l.documents, color: LANGUAGE_COLORS[l.code] || '#8c90b8', share: l.share })), {
+        mode: langChart, showValues: langValues, selected: selLang, title: 'Idioma', width: 220, height: 220, innerRadius: 58,
       }),
       languageRows: languages,
     }
