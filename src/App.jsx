@@ -308,10 +308,6 @@ export default function App() {
         <a href={source.url} target="_blank" rel="noreferrer">Acessar a página de origem <span>↗</span></a>
       </section>}
 
-      <footer>
-        <span>{source.snapshot}</span>
-        <span>{source.description}</span>
-      </footer>
     </section>
     {loginOpen && <AdminLoginModal onClose={() => setLoginOpen(false)} onAuthenticate={authenticateAdmin} />}
     {profileOpen && <ProfileModal profile={data.profile} onClose={() => setProfileOpen(false)} onSave={saveProfile} />}
