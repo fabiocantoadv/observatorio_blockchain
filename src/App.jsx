@@ -236,35 +236,33 @@ export default function App() {
   }
 
   return <main className="app-shell">
-    <aside className="sidebar">
-      <a className="brand" href="#inicio" aria-label="Observatório Blockchain">
-        <span className="brand-mark"><i></i><i></i><i></i></span>
-        <span>observatório<br/><b>blockchain</b></span>
-      </a>
-      <nav aria-label="Navegação do dashboard">
-        {[
-          ['Visão geral', 'overview'], ['Evolução', 'trend'], ['Publicações', 'library'], ['Sobre os dados', 'info'], ['Administração', 'admin']
-        ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} onClick={() => selectPage(label)}>
-          <NavIcon name={icon}/><span>{label}</span>
-        </button>)}
-      </nav>
-      <div className="sidebar-footer">
-        <span className="pulse"></span> Dados públicos
-        <small>Fonte: ONB / IBICT</small>
-      </div>
-    </aside>
-
-    <section className={`dashboard view-${activePage.toLowerCase().replaceAll(' ', '-')}`} id="inicio">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">INDICADORES · PRODUÇÃO CIENTÍFICA</p>
-          <h1>{activePage}</h1>
-        </div>
-        <div className="topbar-actions">
+    <header className="site-header">
+      <div className="site-header-inner">
+        <a className="brand" href="#inicio" aria-label="Observatório Blockchain">
+          <span className="brand-mark"><i></i><i></i><i></i></span>
+          <span>observatório<br/><b>blockchain</b></span>
+        </a>
+        <nav aria-label="Navegação do dashboard">
+          {[
+            ['Visão geral', 'overview'], ['Evolução', 'trend'], ['Publicações', 'library'], ['Sobre os dados', 'info'], ['Administração', 'admin']
+          ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} aria-current={activePage === label ? 'page' : undefined} onClick={() => selectPage(label)}>
+            <NavIcon name={icon}/><span>{label}</span>
+          </button>)}
+        </nav>
+        <div className="header-actions">
+          <span className="data-status" title="Fonte: ONB / IBICT"><span className="pulse"></span>Dados públicos<small>ONB / IBICT</small></span>
           <a href={source.dashboardUrl} target="_blank" rel="noreferrer">Abrir no Kibana <span>↗</span></a>
           <button className="avatar" aria-label={adminCredentials ? 'Editar perfil' : 'Entrar na administração'} title={adminCredentials ? 'Editar perfil' : 'Entrar na administração'} onClick={openProfile}>{data.profile.photo ? <img src={data.profile.photo} alt="" /> : data.profile.initials}</button>
         </div>
-      </header>
+      </div>
+    </header>
+
+
+    <section className={`dashboard view-${activePage.toLowerCase().replaceAll(' ', '-')}`} id="inicio">
+      <div className="page-title">
+        <p className="eyebrow">INDICADORES · PRODUÇÃO CIENTÍFICA</p>
+        <h1>{activePage}</h1>
+      </div>
 
       {activePage !== 'Administração' && <section className="filters" aria-label="Filtros">
         <div className="filter-label"><span>⌕</span><b>Explorar dados</b></div>
