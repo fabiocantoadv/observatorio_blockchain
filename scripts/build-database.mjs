@@ -5,6 +5,13 @@ import { dirname, join } from 'node:path'
 import { parseCsvFile } from './lib/csv.mjs'
 import { hashPassword } from './lib/password.mjs'
 import { buildOrcidTable } from './lib/orcid.mjs'
+import { extractIdentifier } from './lib/identifier.mjs'
+
+const identifierColumns = (id) => ({
+  identificador: id?.valor ?? null,
+  identificador_tipo: id?.tipo ?? null,
+  identificador_url: id?.url ?? null,
+})
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dataDir = join(root, 'src', 'data')
@@ -118,7 +125,10 @@ async function main() {
       paises TEXT,
       citacoes INTEGER,
       idioma TEXT,
-      topico_principal TEXT
+      topico_principal TEXT,
+      identificador TEXT,
+      identificador_tipo TEXT,
+      identificador_url TEXT
     );
 
     CREATE TABLE keywords_publicacao (
@@ -150,8 +160,8 @@ async function main() {
   `)
 
   const insertPub = db.prepare(`
-    INSERT INTO publicacoes (fonte, external_id, titulo, tipo_original, tipo, ano, doi, autores, instituicoes, paises, citacoes, idioma, topico_principal)
-    VALUES (@fonte, @external_id, @titulo, @tipo_original, @tipo, @ano, @doi, @autores, @instituicoes, @paises, @citacoes, @idioma, @topico_principal)
+    INSERT INTO publicacoes (fonte, external_id, titulo, tipo_original, tipo, ano, doi, autores, instituicoes, paises, citacoes, idioma, topico_principal, identificador, identificador_tipo, identificador_url)
+    VALUES (@fonte, @external_id, @titulo, @tipo_original, @tipo, @ano, @doi, @autores, @instituicoes, @paises, @citacoes, @idioma, @topico_principal, @identificador, @identificador_tipo, @identificador_url)
   `)
   const insertKw = db.prepare(`INSERT INTO keywords_publicacao (publicacao_id, keyword, grupo) VALUES (?, ?, ?)`)
   const insertPat = db.prepare(`
@@ -184,6 +194,7 @@ async function main() {
         citacoes: Number.parseInt(o.cited_by_count, 10) || 0,
         idioma: null,
         topico_principal: (o.primary_topic || '').trim() || null,
+        ...identifierColumns(extractIdentifier(o.doi)),
       })
     }
   })
@@ -206,6 +217,7 @@ async function main() {
         citacoes: 0,
         idioma: (o.idioma || '').trim() || null,
         topico_principal: null,
+        ...identifierColumns(extractIdentifier(o.doi_do_documento, o.link_do_documento)),
       })
       const pubId = info.lastInsertRowid
       const seen = new Set()

@@ -220,15 +220,17 @@ function PublicationsTable({ filters }) {
     </div>
     <div className="table-scroll">
       <table className="data-table publications">
-        <thead><tr><th className="num">#</th><th>Título</th><th>Tipo</th><th className="num">Ano</th><th>Autores</th><th>Afiliações</th></tr></thead>
+        <thead><tr><th className="num">#</th><th>Título</th><th>Tipo</th><th className="num">Ano</th><th>Autores</th><th>ID</th></tr></thead>
         <tbody>
           {result.items.length ? result.items.map((item, index) => <tr key={`${result.page}-${index}`}>
             <td className="num muted">{(result.page - 1) * 10 + index + 1}</td>
-            <td className="title-cell">{item.doi ? <a href={item.doi} target="_blank" rel="noreferrer">{item.titulo || '—'}</a> : (item.titulo || '—')}</td>
+            <td className="title-cell">{item.identificador?.url || item.doi ? <a href={item.identificador?.url || item.doi} target="_blank" rel="noreferrer">{item.titulo || '—'}</a> : (item.titulo || '—')}</td>
             <td><span className="type-pill">{item.tipo}</span></td>
             <td className="num">{item.ano ?? '—'}</td>
             <td><div className="clamp">{item.autores.join(', ') || '—'}</div></td>
-            <td><div className="clamp">{item.instituicoes.join(', ') || '—'}</div></td>
+            <td className="id-cell">{item.identificador
+              ? <a className="pub-id" href={item.identificador.url} target="_blank" rel="noreferrer" title={`Abrir pelo ${item.identificador.type}`}><span className={`id-badge ${item.identificador.type === 'DOI' ? 'doi' : 'hdl'}`}>{item.identificador.type === 'DOI' ? 'DOI' : 'HDL'}</span><span className="id-value">{item.identificador.value}</span></a>
+              : <span className="muted">—</span>}</td>
           </tr>) : <tr><td colSpan={6} className="muted">{loading ? 'Carregando…' : 'Nenhuma publicação encontrada.'}</td></tr>}
         </tbody>
       </table>

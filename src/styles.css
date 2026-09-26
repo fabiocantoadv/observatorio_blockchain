@@ -286,3 +286,10 @@ footer { color: var(--muted); }
 .chart-check { display:inline-flex; align-items:center; gap:5px; font-size:10px; font-weight:700; color:var(--muted); cursor:pointer; white-space:nowrap; }
 .chart-check input { accent-color:#001eff; margin:0; width:13px; height:13px; cursor:pointer; }
 .type-columns .vega-chart { margin-top:18px; width:100%; }
+/* Listagem das publicações: coluna ID (DOI ou Handle) */
+.data-table.publications .id-cell { min-width:170px; max-width:240px; }
+.pub-id { display:inline-flex; align-items:flex-start; gap:6px; color:var(--c2); text-decoration:none; font-size:11px; line-height:1.35; }
+.pub-id:hover .id-value { text-decoration:underline; }
+.pub-id .id-value { word-break:break-all; }
+.id-badge { flex:0 0 auto; font-size:9px; font-weight:800; letter-spacing:.3px; border-radius:4px; padding:2px 5px; color:#fff; background:#001eff; }
+.id-badge.hdl { background:#0a0a8c; }

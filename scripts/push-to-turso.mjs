@@ -20,7 +20,8 @@ const schema = {
   publicacoes: `CREATE TABLE publicacoes (
     id INTEGER PRIMARY KEY AUTOINCREMENT, fonte TEXT NOT NULL, external_id TEXT, titulo TEXT,
     tipo_original TEXT, tipo TEXT, ano INTEGER, doi TEXT, autores TEXT, instituicoes TEXT,
-    paises TEXT, citacoes INTEGER, idioma TEXT, topico_principal TEXT)`,
+    paises TEXT, citacoes INTEGER, idioma TEXT, topico_principal TEXT,
+    identificador TEXT, identificador_tipo TEXT, identificador_url TEXT)`,
   keywords_publicacao: `CREATE TABLE keywords_publicacao (publicacao_id INTEGER, keyword TEXT, grupo TEXT)`,
   patentes: `CREATE TABLE patentes (
     id INTEGER PRIMARY KEY AUTOINCREMENT, numero_pedido TEXT, titulo TEXT, titular TEXT,

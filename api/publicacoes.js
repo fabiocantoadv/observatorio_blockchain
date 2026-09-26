@@ -15,8 +15,8 @@ export default async function handler(request, response) {
     const result = await listPublications(filters, { page: get('page'), size: get('size') })
 
     if (get('format') === 'csv') {
-      const header = ['Título', 'Tipo de documento', 'Ano', 'Autores', 'Afiliações', 'DOI', 'Fonte']
-      const lines = result.all().map((r) => [r.titulo, r.tipo, r.ano, r.autores, r.instituicoes, r.doi, r.fonte].map(csvCell).join(','))
+      const header = ['Título', 'Tipo de documento', 'Ano', 'Autores', 'Afiliações', 'Tipo de ID', 'ID', 'Link', 'Fonte']
+      const lines = result.all().map((r) => [r.titulo, r.tipo, r.ano, r.autores, r.instituicoes, r.identificador?.type, r.identificador?.value, r.identificador?.url, r.fonte].map(csvCell).join(','))
       response.setHeader('Content-Type', 'text/csv; charset=utf-8')
       response.setHeader('Content-Disposition', 'attachment; filename="publicacoes.csv"')
       response.statusCode = 200

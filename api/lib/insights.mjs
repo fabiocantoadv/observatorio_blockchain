@@ -92,9 +92,13 @@ async function loadRecords() {
   if (recordsPromise) return recordsPromise
   recordsPromise = (async () => {
     const conn = await db()
-    const pubs = await conn.execute(
-      'SELECT id, fonte, titulo, tipo, ano, doi, autores, instituicoes, paises, idioma, topico_principal FROM publicacoes'
-    )
+    const baseColumns = 'id, fonte, titulo, tipo, ano, doi, autores, instituicoes, paises, idioma, topico_principal'
+    let pubs
+    try {
+      pubs = await conn.execute(`SELECT ${baseColumns}, identificador, identificador_tipo, identificador_url FROM publicacoes`)
+    } catch {
+      pubs = await conn.execute(`SELECT ${baseColumns} FROM publicacoes`) // banco ainda sem as colunas de identificador
+    }
     const kws = await conn.execute('SELECT publicacao_id, keyword, grupo FROM keywords_publicacao')
     try {
       const orcids = await conn.execute('SELECT autor, orcid FROM autores_orcid')
@@ -127,6 +131,7 @@ async function loadRecords() {
         languages: parseLanguages(r.idioma),
         keywords: kwByPub.get(id) || [],
         topic: r.topico_principal ? String(r.topico_principal) : '',
+        identifier: r.identificador ? { type: String(r.identificador_tipo), value: String(r.identificador), url: String(r.identificador_url) } : null,
       }
     })
   })()
@@ -267,6 +272,7 @@ export async function listPublications(filters, { page = 1, size = 10 } = {}) {
   const toItem = (r) => ({
     titulo: r.titulo, tipo: r.tipo, ano: r.ano, fonte: r.fonte,
     doi: r.doi.startsWith('https://doi.org/') ? r.doi : '',
+    identificador: r.identifier,
     autores: r.authors, instituicoes: r.institutions,
   })
   return {

@@ -99,7 +99,7 @@ A barra de filtros tem duas abas, cada uma com seus filtros e o total do recorte
   - Tabelas de Afiliações e de Autores (com ORCID), com busca, ordenação e exportação CSV
   - Idioma, Rede de pesquisadores (link para o VOSviewer) e treemap das 50 palavras-chave mais utilizadas
   - Treemap de Tópicos (tópico principal do OpenAlex), em largura total
-  - Listagem das publicações, com busca, paginação e exportação CSV
+  - Listagem das publicações, com coluna ID (DOI ou Handle, com link), busca, paginação e exportação CSV
 - **Patentes** (filtros: país do titular e ano de depósito)
   - Depósitos por ano e por país do titular
   - Principais titulares (top 10) e tabela de titulares
@@ -137,7 +137,7 @@ Apesar da extensão `.sql`, é um banco SQLite binário, gerado a partir dos CSV
 
 | Tabela | Conteúdo |
 |---|---|
-| `publicacoes` | OpenAlex + OASISbr: título, tipo, ano, DOI, autores, instituições, países, citações, idioma e `topico_principal` |
+| `publicacoes` | OpenAlex + OASISbr: título, tipo, ano, DOI, autores, instituições, países, citações, idioma, `topico_principal` e o identificador persistente (`identificador`, `identificador_tipo`, `identificador_url`: DOI ou, na falta dele, Handle) |
 | `keywords_publicacao` | palavras-chave do OASISbr, uma linha por termo, com tema (Tecnologia, Economia etc.) |
 | `autores_orcid` | nome do autor → ORCID (2.646 autores do OpenAlex) |
 | `patentes` | nº do pedido, título, titular, país do titular, data de depósito e resumo |
