@@ -4,6 +4,9 @@ import { AdminPanel } from './components/AdminPanel'
 import { AdminLoginModal } from './components/AdminLoginModal'
 import { ProfileModal } from './components/ProfileModal'
 import { DetailSections, GroupLegend, GROUP_COLORS } from './components/DetailSections'
+import { PatentSections } from './components/PatentSections'
+
+const DATA_TABS = ['Publicações', 'Patentes']
 
 const defaultProfile = { name: 'Administrador', initials: 'AD', photo: '' }
 
@@ -45,15 +48,27 @@ export default function App() {
   const [storageState, setStorageState] = useState('seed')
   const [selectedType, setSelectedType] = useState('Todos')
   const [selectedYear, setSelectedYear] = useState('Todos')
+  const [activeTab, setActiveTab] = useState('Publicações')
+  const [patentYear, setPatentYear] = useState('Todos')
+  const [patentCountry, setPatentCountry] = useState('Todos')
+  const [patentOptions, setPatentOptions] = useState({ years: [], countries: [] })
   const [activePage, setActivePage] = useState('Visão geral')
   const [adminCredentials, setAdminCredentials] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const { documentTypes, keywords, publicationsByYear, source } = data
-  const patents = data.patents || null
   const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
   const palette = documentTypes.map((item) => item.color)
   const leadKeyword = keywords[0] || { keyword: '—', documents: 0 }
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/patentes?view=insights')
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Patentes indisponíveis.')))
+      .then((payload) => { if (active) setPatentOptions(payload.options) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -177,21 +192,6 @@ export default function App() {
     config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }
   }), [filteredKeywordData])
 
-  const patentCountrySpec = useMemo(() => patents ? ({
-    $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
-    background: 'transparent',
-    width: 'container',
-    height: 275,
-    data: { values: patents.byCountry },
-    mark: { type: 'bar', cornerRadiusEnd: 6, height: 18, color: '#001eff' },
-    encoding: {
-      y: { field: 'country', type: 'nominal', sort: '-x', axis: { title: null, labelColor: '#3b4175', labelLimit: 155, labelPadding: 9, domain: false, ticks: false } },
-      x: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false, tickCount: 8 } },
-      tooltip: [{ field: 'country', title: 'País do titular' }, { field: 'count', title: 'Patentes' }]
-    },
-    config: { axis: { labelFont: 'Inter' }, view: { stroke: null } }
-  }) : null, [patents])
-
   const typeRows = filteredTypes.map((item) => ({
     ...item,
     percent: `${((item.count / totalDocuments) * 100).toFixed(1).replace('.', ',')}%`
@@ -258,35 +258,53 @@ export default function App() {
 
     <section className={`dashboard view-${activePage.toLowerCase().replaceAll(' ', '-')}`} id="inicio">
       <div className="page-title">
-        <p className="eyebrow">INDICADORES · PRODUÇÃO CIENTÍFICA</p>
+        <p className="eyebrow">INDICADORES · {activeTab === 'Patentes' && activePage === 'Visão geral' ? 'PATENTES' : 'PRODUÇÃO CIENTÍFICA'}</p>
         <h1>{activePage}</h1>
       </div>
 
-      {activePage !== 'Administração' && <section className="filters" aria-label="Filtros">
-        <div className="filter-label"><span>⌕</span><b>Explorar dados</b></div>
-        <label>Tipo documental
-          <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)}>
-            <option>Todos</option>
-            {documentTypes.map((item) => <option key={item.type}>{item.type}</option>)}
-          </select>
-        </label>
-        <label>Ano de publicação
-          <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)}>
-            <option>Todos</option>
-            {publicationsByYear.map((item) => <option key={item.year}>{item.year}</option>)}
-          </select>
-        </label>
-        {(selectedType !== 'Todos' || selectedYear !== 'Todos') && <button className="clear-filter" onClick={clearFilters}>Limpar filtros</button>}
+      {activePage === 'Visão geral' && <section className="filters" aria-label="Filtros">
+        <div className="data-tabs" role="tablist" aria-label="Base de dados">
+          {DATA_TABS.map((tab) => <button key={tab} role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+        </div>
+        {activeTab === 'Publicações' ? <>
+          <label>Tipo documental
+            <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)}>
+              <option>Todos</option>
+              {documentTypes.map((item) => <option key={item.type}>{item.type}</option>)}
+            </select>
+          </label>
+          <label>Ano de publicação
+            <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)}>
+              <option>Todos</option>
+              {publicationsByYear.map((item) => <option key={item.year}>{item.year}</option>)}
+            </select>
+          </label>
+          {(selectedType !== 'Todos' || selectedYear !== 'Todos') && <button className="clear-filter" onClick={clearFilters}>Limpar filtros</button>}
+        </> : <>
+          <label>País do titular
+            <select value={patentCountry} onChange={(event) => setPatentCountry(event.target.value)}>
+              <option>Todos</option>
+              {patentOptions.countries.map((country) => <option key={country}>{country}</option>)}
+            </select>
+          </label>
+          <label>Ano de depósito
+            <select value={patentYear} onChange={(event) => setPatentYear(event.target.value)}>
+              <option>Todos</option>
+              {patentOptions.years.map((year) => <option key={year}>{year}</option>)}
+            </select>
+          </label>
+          {(patentCountry !== 'Todos' || patentYear !== 'Todos') && <button className="clear-filter" onClick={() => { setPatentCountry('Todos'); setPatentYear('Todos') }}>Limpar filtros</button>}
+        </>}
       </section>}
 
-      {activePage !== 'Sobre os dados' && activePage !== 'Administração' && <section className="metrics" aria-label="Resumo">
+      {activePage !== 'Sobre os dados' && activePage !== 'Administração' && activeTab === 'Publicações' && <section className="metrics" aria-label="Resumo">
         <MetricCard label="Documentos mapeados" value={compact(selectedCount)} detail={selectedType === 'Todos' ? 'Base consolidada' : `Seleção: ${selectedType}`} />
         <MetricCard label="Pico de produção" value={compact(peak.documents)} detail={`${peak.year} · documentos publicados`} accent="blue" />
         <MetricCard label="Palavra-chave líder" value={leadKeyword.keyword} detail={`${compact(leadKeyword.documents)} documentos indexados`} accent="gold" />
         <MetricCard label="Período coberto" value={publicationsByYear.length ? `${publicationsByYear[0].year}—${publicationsByYear.at(-1).year}` : '—'} detail={`${compact(totalInSeries)} documentos na série`} accent="pink" />
       </section>}
 
-      {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? <div id="dashboard-content">
+      {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? activeTab === 'Patentes' ? <div id="dashboard-content"><PatentSections ano={patentYear} pais={patentCountry} /></div> : <div id="dashboard-content">
       <section className="main-grid">
         <article className="panel composition-panel">
           <div className="panel-heading"><div><p className="section-label">DISTRIBUIÇÃO</p><h2>Composição documental</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
@@ -311,13 +329,6 @@ export default function App() {
           <VegaChart spec={keywordSpec}/>
         </article>
       </section>
-
-      {patents && <section className="lower-grid single">
-        <article className="panel keywords-panel">
-          <div className="panel-heading"><div><p className="section-label">PATENTES</p><h2>Depósitos por país do titular</h2></div><span className="data-chip">{compact(patents.total)} patentes</span></div>
-          <VegaChart spec={patentCountrySpec}/>
-        </article>
-      </section>}
 
       <DetailSections selectedType={selectedType} selectedYear={selectedYear} /></div> : <section className="about-panel" id="dashboard-content">
         <p className="section-label">TRANSPARÊNCIA</p>

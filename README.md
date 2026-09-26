@@ -51,6 +51,7 @@ Os CSVs de origem não são versionados. Para reimportar do zero, coloque os tr�
 - `GET /api/data` — agregados do painel principal (tipos, anos, palavras-chave, patentes).
 - `GET /api/insights?tipo=&ano=` — agregados replicados do painel Kibana (organizações, afiliações, autores, países, idioma, 50 palavras-chave), filtrados por tipo e ano.
 - `GET /api/publicacoes?tipo=&ano=&q=&page=&size=` — listagem paginada com busca; `&format=csv` exporta o recorte.
+- `GET /api/patentes?view=insights&ano=&pais=` — agregados da aba Patentes; sem `view`, lista paginada (`q`, `page`, `size`, `format=csv`).
 
 ## Banco em produção (Turso)
 
