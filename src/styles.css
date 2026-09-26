@@ -278,3 +278,7 @@ footer { color: var(--muted); }
 .panel-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .chart-clear{font:inherit;font-size:10px;font-weight:700;border:1px solid #001eff;background:#fff;color:#001eff;border-radius:99px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .chart-clear:hover,.chart-clear:focus-visible{background:#001eff;color:#fff;outline:none}
+/* Tipos de documentos: legenda mais afastada da rosca e fonte um nível maior */
+.composition-panel .legend-list b { font-size:11px; }
+.composition-panel .legend-list small { font-size:10px; }
+@media (min-width: 721px) { .composition-panel .legend-list { padding-left:28px; } }
