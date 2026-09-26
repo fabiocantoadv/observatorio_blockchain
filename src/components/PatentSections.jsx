@@ -17,9 +17,9 @@ function query(params) {
   return text ? `?${text}` : ''
 }
 
-function Panel({ label, title, chip, note, children }) {
+function Panel({ label, title, chip, note, onClear, children }) {
   return <article className="panel">
-    <div className="panel-heading"><div><h2>{title}</h2></div>{chip && <span className="data-chip">{chip}</span>}</div>
+    <div className="panel-heading"><div><h2>{title}</h2></div>{(chip || onClear) && <div className="panel-actions">{onClear && <button type="button" className="chart-clear" onClick={onClear} title="Remover o filtro deste gráfico">× Limpar filtro</button>}{chip && <span className="data-chip">{chip}</span>}</div>}</div>
     {children}
     {note && <p className="panel-note">{note}</p>}
   </article>
@@ -112,6 +112,7 @@ export function PatentSections({ filters, onFilter, onSummary }) {
   const filterKey = JSON.stringify(filters)
   const sel = (key) => (filters[key] && filters[key] !== 'Todos' ? String(filters[key]) : '')
   const pick = (key) => (value) => onFilter?.(key, value)
+  const clear = (key) => (sel(key) ? () => onFilter?.(key, sel(key)) : undefined)
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
 
@@ -163,19 +164,19 @@ export function PatentSections({ filters, onFilter, onSummary }) {
   return <div className="patent-sections">
     {data.total === 0 ? <Empty /> : <>
       <section className="detail-grid">
-        <Panel label="TENDÊNCIA" title="Depósitos por ano" note="Ano da data de depósito. Pedidos ficam em sigilo por até 18 meses, por isso os anos mais recentes aparecem incompletos.">
+        <Panel label="TENDÊNCIA" title="Depósitos por ano" onClear={clear('ano')} note="Ano da data de depósito. Pedidos ficam em sigilo por até 18 meses, por isso os anos mais recentes aparecem incompletos.">
           <VegaChart spec={specs.years} onClick={(d) => d.year && pick('ano')(String(d.year))} />
         </Panel>
-        <Panel label="GEOGRAFIA" title="Depósitos por país do titular" chip={data.byCountry.length > 10 ? 'Top 10' : undefined}>
+        <Panel label="GEOGRAFIA" title="Depósitos por país do titular" onClear={clear('pais')} chip={data.byCountry.length > 10 ? 'Top 10' : undefined}>
           <VegaChart spec={specs.countries} onClick={(d) => d.country && pick('pais')(d.country)} />
         </Panel>
       </section>
 
       <section className="detail-grid">
-        <Panel label="TITULARES" title="Principais titulares" chip={data.byHolder.length > 10 ? 'Top 10' : undefined} note={leadHolder ? `Líder: ${leadHolder.holder} (${fmt(leadHolder.count)}). Nomes como aparecem na base; variações de grafia do mesmo titular não foram unificadas.` : undefined}>
+        <Panel label="TITULARES" title="Principais titulares" onClear={clear('titular')} chip={data.byHolder.length > 10 ? 'Top 10' : undefined} note={leadHolder ? `Líder: ${leadHolder.holder} (${fmt(leadHolder.count)}). Nomes como aparecem na base; variações de grafia do mesmo titular não foram unificadas.` : undefined}>
           <VegaChart spec={specs.holders} onClick={(d) => d.holder && pick('titular')(d.holder)} />
         </Panel>
-        <Panel label="TITULARES" title="Titulares" chip={`${fmt(data.byHolder.length)} titulares`}>
+        <Panel label="TITULARES" title="Titulares" onClear={clear('titular')} chip={`${fmt(data.byHolder.length)} titulares`}>
           <DataTable columns={[{ key: 'holder', label: 'Titular' }, { key: 'count', label: 'Patentes', align: 'right' }]} rows={data.byHolder} exportName="titulares.csv" onRowClick={(row) => pick('titular')(row.holder)} rowKey="holder" selectedKey={sel('titular')} />
         </Panel>
       </section>

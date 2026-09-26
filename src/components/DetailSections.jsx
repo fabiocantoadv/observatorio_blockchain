@@ -74,9 +74,9 @@ function FrequencyLegend({ ramp = FREQ_RAMP }) {
     <span>Mais ocorrências</span>
   </div>
 }
-function Panel({ label, title, chip, note, className = '', children }) {
+function Panel({ label, title, chip, note, className = '', onClear, children }) {
   return <article className={`panel ${className}`}>
-    <div className="panel-heading"><div><h2>{title}</h2></div>{chip && <span className="data-chip">{chip}</span>}</div>
+    <div className="panel-heading"><div><h2>{title}</h2></div>{(chip || onClear) && <div className="panel-actions">{onClear && <button type="button" className="chart-clear" onClick={onClear} title="Remover o filtro deste gráfico">× Limpar filtro</button>}{chip && <span className="data-chip">{chip}</span>}</div>}</div>
     {children}
     {note && <p className="panel-note">{note}</p>}
   </article>
@@ -339,12 +339,14 @@ export function DetailSections({ filters, onFilter, onSummary }) {
   // Layout em pares de altura parecida (barras com barras, tabela com tabela) e
   // cartões esticados na mesma linha, para não sobrar espaço em branco.
   const pick = (key) => (value) => onFilter?.(key, value)
+  // Clicar de novo no valor ativo remove o filtro daquele gráfico.
+  const clear = (key) => (sel(key) ? () => onFilter?.(key, sel(key)) : undefined)
   const selType = sel('tipo')
 
   return <div className="detail-sections">
     <section className="main-grid">
       <article className="panel composition-panel">
-        <div className="panel-heading"><div><h2>Tipos de documentos</h2></div><span className="data-chip">{selType || 'Todos os tipos'}</span></div>
+        <div className="panel-heading"><div><h2>Tipos de documentos</h2></div><div className="panel-actions">{selType && <button type="button" className="chart-clear" onClick={clear('tipo')} title="Remover o filtro deste gráfico">× Limpar filtro</button>}<span className="data-chip">{selType || 'Todos os tipos'}</span></div></div>
         <div className="donut-layout">
           <div className="donut-wrap"><VegaChart spec={specs.types} onClick={(d) => d.type && pick('tipo')(d.type)} /><div className="donut-total"><strong>{fmt(data.total)}</strong><span>documentos</span></div></div>
           <ul className="legend-list">
@@ -358,8 +360,10 @@ export function DetailSections({ filters, onFilter, onSummary }) {
       </article>
       <article className="panel trend-panel">
         <div className="panel-heading"><div><h2>Publicações por ano</h2></div>
+          <div className="panel-actions">{sel('ano') && <button type="button" className="chart-clear" onClick={clear('ano')} title="Remover o filtro deste gráfico">× Limpar filtro</button>}
           <div className="sort-toggle" role="group" aria-label="Ordenação das colunas">
             {[['cronologica', 'Cronológica'], ['crescente', 'Crescente']].map(([value, label]) => <button key={value} className={yearSort === value ? 'active' : ''} aria-pressed={yearSort === value} onClick={() => setYearSort(value)}>{label}</button>)}
+          </div>
           </div>
         </div>
         <VegaChart spec={specs.years} onClick={(d) => d.year && pick('ano')(String(d.year))} />
@@ -368,19 +372,19 @@ export function DetailSections({ filters, onFilter, onSummary }) {
     </section>
 
     <section className="detail-grid">
-      <Panel title="Organizações" chip="Top 20" note={`Afiliação informada em ${fmt(data.coverage.institutions)} documentos. Cada documento conta uma vez por instituição. Clique numa barra para filtrar o painel.`}>
+      <Panel title="Organizações" chip="Top 20" onClear={clear('instituicao')} note={`Afiliação informada em ${fmt(data.coverage.institutions)} documentos. Cada documento conta uma vez por instituição. Clique numa barra para filtrar o painel.`}>
         {data.institutions.length ? <VegaChart spec={specs.orgs} onClick={(d) => d.name && pick('instituicao')(d.name)} /> : <Empty />}
       </Panel>
-      <Panel title="Países dos autores" chip="Top 10" note={`Com base nos ${fmt(data.coverage.countries)} documentos do OpenAlex com país informado; um documento conta para cada país dos seus autores.`}>
+      <Panel title="Países dos autores" chip="Top 10" onClear={clear('pais')} note={`Com base nos ${fmt(data.coverage.countries)} documentos do OpenAlex com país informado; um documento conta para cada país dos seus autores.`}>
         {data.countries.length ? <VegaChart spec={specs.countries} onClick={(d) => d.code && pick('pais')(d.code)} /> : <Empty>Nenhum documento do OpenAlex neste recorte (o OASISbr não informa o país dos autores).</Empty>}
       </Panel>
     </section>
 
     <section className="detail-grid">
-      <Panel title="Afiliações" chip={`${fmt(data.institutions.length)} instituições`}>
+      <Panel title="Afiliações" onClear={clear('instituicao')} chip={`${fmt(data.institutions.length)} instituições`}>
         <DataTable columns={[{ key: 'name', label: 'Afiliação' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.institutions} exportName="afiliacoes.csv" onRowClick={(row) => pick('instituicao')(row.name)} rowKey="name" selectedKey={sel('instituicao')} />
       </Panel>
-      <Panel title="Autores" chip={`${fmt(data.authors.length)} autores`} note={`ORCID de ${fmt(data.authorsWithOrcid || 0)} autores, conforme os dados do OpenAlex (o OASISbr não traz ORCID). Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.`}>
+      <Panel title="Autores" onClear={clear('autor')} chip={`${fmt(data.authors.length)} autores`} note={`ORCID de ${fmt(data.authorsWithOrcid || 0)} autores, conforme os dados do OpenAlex (o OASISbr não traz ORCID). Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.`}>
         <DataTable
           columns={[
             { key: 'name', label: 'Autor' },
@@ -399,7 +403,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
 
     <section className="detail-grid narrow-left">
       <div className="panel-stack">
-        <Panel title="Idioma" note={`Idioma informado em ${fmt(data.coverage.languages)} documentos (OASISbr). O OpenAlex não traz esse campo na base atual.`}>
+        <Panel title="Idioma" onClear={clear('idioma')} note={`Idioma informado em ${fmt(data.coverage.languages)} documentos (OASISbr). O OpenAlex não traz esse campo na base atual.`}>
           <div className="language-layout">
             <VegaChart spec={specs.languages} onClick={(d) => d.code && pick('idioma')(d.code)} />
             <ul className="legend-list">
@@ -420,13 +424,13 @@ export function DetailSections({ filters, onFilter, onSummary }) {
           <a className="network-link" href={NETWORK_URL} target="_blank" rel="noreferrer">Abrir a rede <span>↗</span></a>
         </article>
       </div>
-      <Panel className="treemap-panel" title="Palavras-chave (50 mais utilizadas)" note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
+      <Panel className="treemap-panel" title="Palavras-chave (50 mais utilizadas)" onClear={clear('palavra')} note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
         <FrequencyLegend ramp={TOPIC_RAMP} />
         {data.keywords.length ? <FrequencyTreemap items={keywordItems} labelTitle="Palavra-chave" tooltipFields={KEYWORD_TOOLTIP} shareTitle="% do top 50" ramp={TOPIC_RAMP} darkFrom={TOPIC_DARK_FROM} selected={sel('palavra')} onSelect={pick('palavra')} /> : <Empty>Nenhuma palavra-chave neste recorte (só o OASISbr traz palavras-chave).</Empty>}
       </Panel>
     </section>
 
-    <Panel className="full-width topics-panel" title="Tópicos" chip={data.topics.length > TOPICS_SHOWN ? `${TOPICS_SHOWN} de ${fmt(data.topics.length)} tópicos` : `${fmt(data.topics.length)} tópicos`} note={`Tópico principal (primary topic) atribuído pelo OpenAlex a ${fmt(data.coverage.topics)} documentos. Percentuais sobre os documentos com tópico; o OASISbr não traz esse campo.`}>
+    <Panel className="full-width topics-panel" title="Tópicos" onClear={clear('topico')} chip={data.topics.length > TOPICS_SHOWN ? `${TOPICS_SHOWN} de ${fmt(data.topics.length)} tópicos` : `${fmt(data.topics.length)} tópicos`} note={`Tópico principal (primary topic) atribuído pelo OpenAlex a ${fmt(data.coverage.topics)} documentos. Percentuais sobre os documentos com tópico; o OASISbr não traz esse campo.`}>
       <FrequencyLegend ramp={TOPIC_RAMP} />
       {data.topics.length
         ? <FrequencyTreemap items={topicItems} labelTitle="Tópico" shareTitle="% dos documentos com tópico" ramp={TOPIC_RAMP} darkFrom={TOPIC_DARK_FROM} selected={sel('topico')} onSelect={pick('topico')} />

@@ -274,3 +274,7 @@ footer { color: var(--muted); }
 .data-table tr.clickable-row:hover .row-filter { color:var(--c2); text-decoration:underline; }
 .data-table tr.selected-row .row-filter { color:var(--c1); font-weight:800; }
 @media (max-width:720px) { .filter-chips { grid-column:1/-1; } }
+/* Botão "Limpar filtro" no cabeçalho do gráfico filtrado */
+.panel-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chart-clear{font:inherit;font-size:10px;font-weight:700;border:1px solid #001eff;background:#fff;color:#001eff;border-radius:99px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.chart-clear:hover,.chart-clear:focus-visible{background:#001eff;color:#fff;outline:none}
