@@ -225,3 +225,17 @@ footer { color: var(--muted); }
 .orcid-link:hover { color:var(--c2); text-decoration:underline; }
 .orcid-badge { display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; background:#a6ce39; color:#fff; font:700 8px/1 Arial, sans-serif; letter-spacing:0; }
 .data-table .muted { color:#8a8fb5; }
+
+/* Rede de pesquisadores com imagem ilustrativa; treemap preenche a altura da coluna */
+.network-panel { min-height:420px; }
+.network-preview { position:relative; display:block; margin-top:14px; border-radius:10px; overflow:hidden; border:1px solid var(--line); background:#f7f8fc; }
+.network-preview img { display:block; width:100%; height:auto; aspect-ratio:560/380; transition:transform .25s ease; }
+.network-preview:hover img { transform:scale(1.03); }
+.network-tag { position:absolute; right:8px; bottom:8px; background:rgba(255,255,255,.9); color:var(--muted); font-size:9px; font-weight:700; letter-spacing:.03em; padding:3px 7px; border-radius:99px; border:1px solid var(--line); }
+.network-panel .network-link { margin-top:auto; }
+.network-panel .panel-note { margin:12px 0 14px !important; }
+.treemap-panel .treemap-wrap { flex:1; position:relative; min-height:560px; }
+.treemap-panel .treemap-canvas { position:absolute; inset:0; }
+.treemap-panel > .panel-note { margin-top:12px; padding-top:0; }
+@media (max-width:720px) { .network-panel { min-height:0; } .treemap-panel .treemap-wrap { min-height:420px; } }
+.detail-grid .panel .treemap-canvas .vega-chart { margin-top:0; }

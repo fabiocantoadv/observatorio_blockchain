@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { VegaChart } from './VegaChart'
 import { DataTable, Pager } from './DataTable'
+import networkIllustration from '../assets/rede-coautoria-ilustrativa.svg'
 
 // Seções replicadas do painel Kibana "RNP - v4" (rnpdash.ibict.br), calculadas a partir
 // do banco local via /api/insights e /api/publicacoes. Respeitam os filtros de tipo e ano.
@@ -44,16 +45,20 @@ function query(params) {
   return text ? `?${text}` : ''
 }
 
-function useContainerWidth() {
+function useContainerSize() {
   const ref = useRef(null)
-  const [width, setWidth] = useState(0)
+  const [size, setSize] = useState({ width: 0, height: 0 })
   useEffect(() => {
     if (!ref.current) return undefined
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.floor(entry.contentRect.width)))
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.floor(entry.contentRect.width)
+      const height = Math.floor(entry.contentRect.height)
+      setSize((s) => (s.width === width && s.height === height ? s : { width, height }))
+    })
     observer.observe(ref.current)
     return () => observer.disconnect()
   }, [])
-  return [ref, width]
+  return [ref, size]
 }
 
 function FrequencyLegend() {
@@ -93,15 +98,17 @@ function horizontalBar(values, { field, label, color, height, tooltipTitle, shar
 }
 
 function KeywordTreemap({ keywords }) {
-  const [ref, width] = useContainerWidth()
+  // O treemap ocupa toda a altura disponível no cartão (que estica para acompanhar a coluna ao lado).
+  const [ref, { width, height: boxHeight }] = useContainerSize()
+  const height = boxHeight || TREEMAP_HEIGHT // a altura mínima vem do CSS (.treemap-wrap)
   const total = keywords.reduce((sum, k) => sum + k.documents, 0)
   const counts = keywords.map((k) => k.documents)
   const lo = Math.min(...counts)
   const hi = Math.max(...counts, lo + 1)
-  const spec = useMemo(() => width ? ({
+  const spec = useMemo(() => width && height ? ({
     $schema: 'https://vega.github.io/schema/vega/v6.json',
     width,
-    height: TREEMAP_HEIGHT,
+    height,
     padding: 0,
     autosize: 'none',
     data: [
@@ -157,8 +164,8 @@ function KeywordTreemap({ keywords }) {
         },
       },
     ],
-  }) : null, [keywords, width, total, lo, hi])
-  return <div ref={ref} className="treemap-wrap">{spec && keywords.length ? <VegaChart spec={spec} /> : null}</div>
+  }) : null, [keywords, width, height, total, lo, hi])
+  return <div ref={ref} className="treemap-wrap"><div className="treemap-canvas">{spec && keywords.length ? <VegaChart spec={spec} /> : null}</div></div>
 }
 
 function PublicationsTable({ selectedType, selectedYear }) {
@@ -299,6 +306,10 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
         </Panel>
         <article className="panel network-panel">
           <h2>Rede de pesquisadores</h2>
+          <a className="network-preview" href={NETWORK_URL} target="_blank" rel="noreferrer" aria-label="Abrir a rede de coautoria no VOSviewer">
+            <img src={networkIllustration} alt="Ilustração de uma rede de coautoria, com pesquisadores como nós coloridos por grupo e ligados por linhas" />
+            <span className="network-tag">Imagem ilustrativa</span>
+          </a>
           <p className="panel-note">Mapa de coautoria no VOSviewer, o mesmo publicado no painel Kibana do observatório.</p>
           <a className="network-link" href={NETWORK_URL} target="_blank" rel="noreferrer">Abrir a rede <span>↗</span></a>
         </article>
