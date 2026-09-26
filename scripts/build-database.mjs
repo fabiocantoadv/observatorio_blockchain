@@ -192,7 +192,7 @@ async function main() {
         instituicoes: (o.inst_display_names || '').trim() || null,
         paises: (o.authorships_countries || '').trim() || null,
         citacoes: Number.parseInt(o.cited_by_count, 10) || 0,
-        idioma: null,
+        idioma: (o.language || '').trim() || null,
         topico_principal: (o.primary_topic || '').trim() || null,
         ...identifierColumns(extractIdentifier(o.doi)),
       })

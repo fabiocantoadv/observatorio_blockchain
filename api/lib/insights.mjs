@@ -30,6 +30,7 @@ const LANGUAGE_CODES = {
   por: 'por', pt: 'por', pt_br: 'por', 'pt-br': 'por', 'português': 'por', portugues: 'por',
   eng: 'eng', en: 'eng', spa: 'spa', es: 'spa', ita: 'ita', it: 'ita',
   fra: 'fra', fre: 'fra', fr: 'fra', deu: 'deu', ger: 'deu', de: 'deu',
+  ara: 'ara', ar: 'ara', cat: 'cat', ca: 'cat', kor: 'kor', ko: 'kor',
 }
 
 function unique(list) {

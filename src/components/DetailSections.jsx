@@ -18,8 +18,8 @@ const TOPIC_DARK_FROM = 0.78
 // Mapa de coautoria publicado no painel Kibana (VOSviewer).
 const NETWORK_URL = 'https://app.vosviewer.com/?json=https%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D1ETJSDQR_xOOfvf1A4gHdX5zCqQ55Za1a'
 
-const LANGUAGE_LABELS = { por: 'Português', eng: 'Inglês', spa: 'Espanhol', ita: 'Italiano', fra: 'Francês', deu: 'Alemão', na: 'Não informado' }
-const LANGUAGE_COLORS = { por: '#001eff', eng: '#00f0dc', spa: '#ffff00', ita: '#6678ff', fra: '#0a0a8c', deu: '#00a99d', na: '#cfd3ea' }
+const LANGUAGE_LABELS = { por: 'Português', eng: 'Inglês', spa: 'Espanhol', ita: 'Italiano', fra: 'Francês', deu: 'Alemão', ara: 'Árabe', cat: 'Catalão', kor: 'Coreano', na: 'Não informado' }
+const LANGUAGE_COLORS = { por: '#001eff', eng: '#00f0dc', spa: '#ffff00', ita: '#6678ff', fra: '#0a0a8c', deu: '#00a99d', ara: '#3b4bd8', cat: '#7fe9dc', kor: '#8c90b8', na: '#cfd3ea' }
 
 // Mesma altura para os dois gráficos de barras lado a lado.
 const BAR_ROW_HEIGHT = 440
@@ -457,7 +457,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
 
     <section className="detail-grid narrow-left">
       <div className="panel-stack">
-        <Panel className="language-panel" title="Idioma das publicações" onClear={clear('idioma')} actions={<ChartControls values={langValues} onValues={setLangValues} mode={langChart} onMode={setLangChart} />} note={`Idioma informado em ${fmt(data.coverage.languages)} documentos (OASISbr). O OpenAlex não traz esse campo na base atual.`}>
+        <Panel className="language-panel" title="Idioma das publicações" onClear={clear('idioma')} actions={<ChartControls values={langValues} onValues={setLangValues} mode={langChart} onMode={setLangChart} />} note={`Idioma informado em ${fmt(data.coverage.languages)} documentos: no OASISbr, o idioma declarado pelo repositório; no OpenAlex, o idioma atribuído pela API (campo language).`}>
           <div className={`language-layout ${langChart === 'colunas' ? 'columns' : ''}`}>
             <VegaChart spec={specs.languages} onClick={(d) => d.key && pick('idioma')(d.key)} />
             {langChart === 'rosca' && <ul className="legend-list">

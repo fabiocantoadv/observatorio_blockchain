@@ -150,7 +150,8 @@ sqlite3 src/data/observatorio.sql "SELECT tipo, COUNT(*) FROM publicacoes GROUP 
 
 #### Cobertura de cada campo
 
-- **Palavras-chave e idioma:** só OASISbr (o CSV do OpenAlex não traz esses campos).
+- **Palavras-chave:** só OASISbr (o CSV do OpenAlex não traz esse campo).
+- **Idioma:** OASISbr (idioma declarado pelo repositório) e OpenAlex (coluna `language` do CSV, coletada da API do OpenAlex com `npm run fetch:language`; 1.798 dos 2.119 registros têm idioma, os demais vêm sem idioma na API ou não têm ID do OpenAlex).
 - **Países dos autores, ORCID e tópicos:** só OpenAlex (no OASISbr o país é fixado como BR na importação).
 - **Afiliações:** OpenAlex (afiliação dos autores) e OASISbr (instituição de defesa).
 
@@ -161,6 +162,7 @@ sqlite3 src/data/observatorio.sql "SELECT tipo, COUNT(*) FROM publicacoes GROUP 
 | `npm run build:data` | Reconstrói o banco a partir dos três CSVs (preserva `metadados` e `usuarios`) |
 | `npm run import:orcid` | Recria só a tabela `autores_orcid` a partir do CSV do OpenAlex |
 | `npm run fetch:topics` | Recoleta na API do OpenAlex o `primary_topic` de cada obra e grava a coluna no CSV (guarda uma cópia `*.antes_primary_topic.csv`); rode `build:data` em seguida |
+| `npm run fetch:language` | Coleta na API do OpenAlex o idioma (`language`) de cada obra e grava a coluna no CSV; rode `build:data` em seguida |
 | `node scripts/migrate-usuarios.mjs` | Cria ou atualiza o usuário da Administração (`SEED_ADMIN_USERNAME`, `SEED_ADMIN_PASSWORD`) |
 | `node scripts/push-to-turso.mjs` | Copia todas as tabelas do banco local para o Turso |
 
