@@ -206,3 +206,16 @@ footer { color: var(--muted); }
 .freq-legend { display:flex; align-items:center; gap:10px; margin-top:12px; color:var(--muted); font-size:10px; font-weight:700; }
 .freq-legend i { display:block; width:160px; height:10px; border-radius:99px; box-shadow:inset 0 0 0 1px rgba(10,10,140,.08); }
 .panel-heading h2 { padding-top:2px; }
+
+/* Acomodação dos cartões: cartões da mesma linha com a mesma altura, notas no rodapé */
+.detail-grid { align-items:stretch; }
+.detail-grid > .panel, .panel-stack > .panel { display:flex; flex-direction:column; }
+.detail-grid > .panel > .panel-note, .panel-stack > .panel > .panel-note { margin-top:auto; padding-top:12px; }
+.detail-grid > .panel > .data-table-wrap { flex:1; align-content:start; }
+.detail-grid > .panel > .data-table-wrap > .table-footer { margin-top:auto; }
+.panel-stack { display:flex; flex-direction:column; gap:17px; min-width:0; }
+.panel-stack > .network-panel { flex:1; min-height:0; }
+.network-panel .panel-note { margin-top:10px !important; padding-top:0 !important; }
+.treemap-wrap { min-height:560px; }
+.full-width { width:100%; }
+@media (max-width:720px) { .panel-stack { gap:11px; } .treemap-wrap { min-height:0; } }

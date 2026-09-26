@@ -16,6 +16,10 @@ const NETWORK_URL = 'https://app.vosviewer.com/?json=https%3A%2F%2Fdrive.google.
 const LANGUAGE_LABELS = { por: 'Português', eng: 'Inglês', spa: 'Espanhol', ita: 'Italiano', fra: 'Francês', deu: 'Alemão', na: 'Não informado' }
 const LANGUAGE_COLORS = { por: '#001eff', eng: '#00f0dc', spa: '#ffff00', ita: '#6678ff', fra: '#0a0a8c', deu: '#00a99d', na: '#cfd3ea' }
 
+// Mesma altura para os dois gráficos de barras lado a lado.
+const BAR_ROW_HEIGHT = 440
+const TREEMAP_HEIGHT = 560
+
 const AXIS_LABEL = '#3b4175'
 const AXIS_MUTED = '#5c6390'
 const GRID = '#e4e6f3'
@@ -97,7 +101,7 @@ function KeywordTreemap({ keywords }) {
   const spec = useMemo(() => width ? ({
     $schema: 'https://vega.github.io/schema/vega/v6.json',
     width,
-    height: 420,
+    height: TREEMAP_HEIGHT,
     padding: 0,
     autosize: 'none',
     data: [
@@ -232,8 +236,8 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
     const countries = data.countries.map((c) => ({ ...c, country: countryName(c.code) }))
     const languages = data.languages.map((l) => ({ ...l, language: LANGUAGE_LABELS[l.code] || l.code.toUpperCase(), share: l.documents / data.total }))
     return {
-      orgs: horizontalBar(orgs, { field: 'documents', label: 'name', color: '#001eff', height: Math.max(120, orgs.length * 24), tooltipTitle: 'Instituição' }),
-      countries: horizontalBar(countries, { field: 'documents', label: 'country', color: '#0a0a8c', height: Math.max(100, countries.length * 28), tooltipTitle: 'País', shareField: 'share' }),
+      orgs: horizontalBar(orgs, { field: 'documents', label: 'name', color: '#001eff', height: BAR_ROW_HEIGHT, tooltipTitle: 'Instituição' }),
+      countries: horizontalBar(countries, { field: 'documents', label: 'country', color: '#0a0a8c', height: BAR_ROW_HEIGHT, tooltipTitle: 'País', shareField: 'share' }),
       languages: {
         $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
         background: 'transparent', width: 220, height: 220,
@@ -253,49 +257,51 @@ export function DetailSections({ selectedType, selectedYear, onSummary }) {
   if (error) return <p className="panel-note detail-error">{error}</p>
   if (!data || !specs) return <p className="panel-note detail-loading">Carregando indicadores detalhados…</p>
 
+  // Layout em pares de altura parecida (barras com barras, tabela com tabela) e
+  // cartões esticados na mesma linha, para não sobrar espaço em branco.
   return <div className="detail-sections">
-    <section className="detail-grid wide-left">
-      <Panel label="INSTITUIÇÕES" title="Organizações" chip="Top 20" note={`Afiliação informada em ${fmt(data.coverage.institutions)} de ${fmt(data.total)} documentos. Cada documento conta uma vez por instituição.`}>
+    <section className="detail-grid">
+      <Panel title="Organizações" chip="Top 20" note={`Afiliação informada em ${fmt(data.coverage.institutions)} de ${fmt(data.total)} documentos. Cada documento conta uma vez por instituição.`}>
         {data.institutions.length ? <VegaChart spec={specs.orgs} /> : <Empty />}
       </Panel>
-      <Panel label="INSTITUIÇÕES" title="Afiliações" chip={`${fmt(data.institutions.length)} instituições`}>
-        <DataTable columns={[{ key: 'name', label: 'Afiliação' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.institutions} exportName="afiliacoes.csv" />
-      </Panel>
-    </section>
-
-    <section className="detail-grid">
-      <Panel label="PESSOAS" title="Autores" chip={`${fmt(data.authors.length)} autores`} note="Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.">
-        <DataTable columns={[{ key: 'name', label: 'Autor' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.authors} exportName="autores.csv" />
-      </Panel>
-      <Panel label="GEOGRAFIA" title="Países dos autores" chip="Top 10" note={`Com base nos ${fmt(data.coverage.countries)} documentos do OpenAlex com país informado; um documento conta para cada país dos seus autores.`}>
+      <Panel title="Países dos autores" chip="Top 10" note={`Com base nos ${fmt(data.coverage.countries)} documentos do OpenAlex com país informado; um documento conta para cada país dos seus autores.`}>
         {data.countries.length ? <VegaChart spec={specs.countries} /> : <Empty>Nenhum documento do OpenAlex neste recorte (o OASISbr não informa o país dos autores).</Empty>}
       </Panel>
     </section>
 
-    <section className="detail-grid narrow-left">
-      <Panel label="IDIOMA" title="Idioma" note={`Idioma informado em ${fmt(data.coverage.languages)} documentos (OASISbr). O OpenAlex não traz esse campo na base atual.`}>
-        <div className="language-layout">
-          <VegaChart spec={specs.languages} />
-          <ul className="legend-list">
-            {specs.languageRows.map((l) => <li key={l.code}><span style={{ background: LANGUAGE_COLORS[l.code] || '#8c90b8' }}></span><div><b>{l.language}</b><small>{fmt(l.documents)} · {pct(l.share)}</small></div></li>)}
-          </ul>
-        </div>
+    <section className="detail-grid">
+      <Panel title="Afiliações" chip={`${fmt(data.institutions.length)} instituições`}>
+        <DataTable columns={[{ key: 'name', label: 'Afiliação' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.institutions} exportName="afiliacoes.csv" />
       </Panel>
-      <Panel label="ASSUNTOS" title="Palavras-chave (50 mais utilizadas)" note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
+      <Panel title="Autores" chip={`${fmt(data.authors.length)} autores`} note="Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.">
+        <DataTable columns={[{ key: 'name', label: 'Autor' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.authors} exportName="autores.csv" />
+      </Panel>
+    </section>
+
+    <section className="detail-grid narrow-left">
+      <div className="panel-stack">
+        <Panel title="Idioma" note={`Idioma informado em ${fmt(data.coverage.languages)} documentos (OASISbr). O OpenAlex não traz esse campo na base atual.`}>
+          <div className="language-layout">
+            <VegaChart spec={specs.languages} />
+            <ul className="legend-list">
+              {specs.languageRows.map((l) => <li key={l.code}><span style={{ background: LANGUAGE_COLORS[l.code] || '#8c90b8' }}></span><div><b>{l.language}</b><small>{fmt(l.documents)} · {pct(l.share)}</small></div></li>)}
+            </ul>
+          </div>
+        </Panel>
+        <article className="panel network-panel">
+          <h2>Rede de pesquisadores</h2>
+          <p className="panel-note">Mapa de coautoria no VOSviewer, o mesmo publicado no painel Kibana do observatório.</p>
+          <a className="network-link" href={NETWORK_URL} target="_blank" rel="noreferrer">Abrir a rede <span>↗</span></a>
+        </article>
+      </div>
+      <Panel className="treemap-panel" title="Palavras-chave (50 mais utilizadas)" note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
         <FrequencyLegend />
         {data.keywords.length ? <KeywordTreemap keywords={data.keywords} /> : <Empty>Nenhuma palavra-chave neste recorte (só o OASISbr traz palavras-chave).</Empty>}
       </Panel>
     </section>
 
-    <section className="detail-grid narrow-left publications-row">
-      <article className="panel network-panel">
-        <h2>Rede de pesquisadores</h2>
-        <p className="panel-note">Mapa de coautoria no VOSviewer, o mesmo publicado no painel Kibana do observatório.</p>
-        <a className="network-link" href={NETWORK_URL} target="_blank" rel="noreferrer">Abrir a rede <span>↗</span></a>
-      </article>
-      <Panel label="REGISTROS" title="Listagem das publicações">
-        <PublicationsTable selectedType={selectedType} selectedYear={selectedYear} />
-      </Panel>
-    </section>
+    <Panel className="full-width" title="Listagem das publicações">
+      <PublicationsTable selectedType={selectedType} selectedYear={selectedYear} />
+    </Panel>
   </div>
 }

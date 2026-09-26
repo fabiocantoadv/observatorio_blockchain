@@ -118,7 +118,7 @@ export function PatentSections({ ano, pais, onSummary }) {
   const specs = useMemo(() => {
     if (!data) return null
     const countries = data.byCountry.slice(0, 10)
-    const holders = data.byHolder.slice(0, 15)
+    const holders = data.byHolder.slice(0, 10)
     return {
       years: {
         $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
@@ -137,8 +137,8 @@ export function PatentSections({ ano, pais, onSummary }) {
         },
         config: { axis: { labelFont: 'Manrope, Arial, sans-serif' }, view: { stroke: null } },
       },
-      countries: horizontalBar(countries, { label: 'country', color: '#0a0a8c', height: Math.max(90, countries.length * 28), title: 'País do titular' }),
-      holders: horizontalBar(holders, { label: 'holder', color: '#001eff', height: Math.max(90, holders.length * 26), title: 'Titular' }),
+      countries: horizontalBar(countries, { label: 'country', color: '#0a0a8c', height: 260, title: 'País do titular' }),
+      holders: horizontalBar(holders, { label: 'holder', color: '#001eff', height: 360, title: 'Titular' }),
     }
   }, [data])
 
@@ -158,8 +158,8 @@ export function PatentSections({ ano, pais, onSummary }) {
         </Panel>
       </section>
 
-      <section className="detail-grid wide-left">
-        <Panel label="TITULARES" title="Principais titulares" chip={data.byHolder.length > 15 ? 'Top 15' : undefined} note={leadHolder ? `Líder: ${leadHolder.holder} (${fmt(leadHolder.count)}). Nomes como aparecem na base; variações de grafia do mesmo titular não foram unificadas.` : undefined}>
+      <section className="detail-grid">
+        <Panel label="TITULARES" title="Principais titulares" chip={data.byHolder.length > 10 ? 'Top 10' : undefined} note={leadHolder ? `Líder: ${leadHolder.holder} (${fmt(leadHolder.count)}). Nomes como aparecem na base; variações de grafia do mesmo titular não foram unificadas.` : undefined}>
           <VegaChart spec={specs.holders} />
         </Panel>
         <Panel label="TITULARES" title="Titulares" chip={`${fmt(data.byHolder.length)} titulares`}>
