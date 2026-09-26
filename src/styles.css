@@ -252,3 +252,25 @@ footer { color: var(--muted); }
 .topics-panel .treemap-canvas { position:absolute; inset:0; }
 .topics-panel .treemap-canvas .vega-chart { margin-top:0; }
 @media (max-width:720px) { .topics-panel .treemap-wrap { height:420px; } }
+
+/* Filtros cruzados: chips dos filtros aplicados e elementos clicáveis */
+.filters { flex-wrap:wrap; }
+.filter-chips { flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; padding-top:10px; margin-top:2px; border-top:1px dashed var(--line); }
+.filter-chips-label { color:var(--muted); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-right:2px; }
+.filter-chip { display:inline-flex; align-items:center; gap:6px; max-width:100%; border:1px solid #b8c0ff; background:var(--c2-soft); color:var(--c1); border-radius:99px; padding:5px 8px 5px 10px; font-size:12px; font-weight:700; }
+.filter-chip small { color:var(--muted); font-size:10px; font-weight:700; }
+.filter-chip span { display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; background:var(--c1); color:#fff; font-size:11px; line-height:1; }
+.filter-chip:hover { border-color:var(--c2); }
+.filters .filter-chips .clear-filter { padding:0 4px; }
+.vega-chart.clickable path { cursor:pointer; }
+.legend-list .legend-filter { display:flex; align-items:center; gap:8px; width:100%; border:0; background:transparent; padding:2px 4px; margin:-2px -4px; border-radius:6px; text-align:left; color:inherit; }
+.legend-list .legend-filter:hover { background:var(--c1-soft); }
+.legend-list .legend-filter[aria-pressed="true"] { background:var(--c2-soft); }
+.legend-list .legend-filter > span { width:8px; height:8px; border-radius:99px; flex:0 0 auto; }
+.legend-list li.dimmed { opacity:.45; }
+.data-table tr.clickable-row { cursor:pointer; }
+.data-table tr.selected-row td { background:var(--c2-soft); }
+.data-table .row-filter { border:0; background:transparent; padding:0; font:inherit; color:inherit; text-align:left; cursor:pointer; }
+.data-table tr.clickable-row:hover .row-filter { color:var(--c2); text-decoration:underline; }
+.data-table tr.selected-row .row-filter { color:var(--c1); font-weight:800; }
+@media (max-width:720px) { .filter-chips { grid-column:1/-1; } }

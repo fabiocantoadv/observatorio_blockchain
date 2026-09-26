@@ -20,7 +20,7 @@ export async function db() {
   return clientPromise
 }
 
-const TYPE_STYLE = [
+export const TYPE_STYLE = [
   ['Artigo', '#0a0a8c'],
   ['TCC', '#00f0dc'],
   ['Dissertação', '#001eff'],

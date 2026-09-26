@@ -18,7 +18,7 @@ A barra de filtros tem duas abas, cada uma com seus filtros e o total do recorte
   - Principais titulares (top 10) e tabela de titulares
   - Listagem das patentes, com resumo expansível e exportação CSV
 
-Os gráficos das seções de detalhe seguem de fato os filtros (são calculados no servidor a cada recorte).
+**Filtros cruzados:** os gráficos e tabelas também são filtros. Clicar em um tipo de documento, ano, organização, país, idioma, palavra-chave, tópico, afiliação ou autor (e, nas patentes, em ano, país ou titular) filtra o painel inteiro, inclusive o total e a listagem. Os filtros se somam, aparecem como etiquetas acima dos gráficos (× remove um, "Limpar todos" remove tudo), e clicar de novo no mesmo item desfaz a seleção. Cada gráfico é calculado com todos os filtros exceto o seu próprio, então o item escolhido fica destacado e os demais continuam visíveis, esmaecidos. Tudo é calculado no servidor a cada recorte.
 
 ## Rodar localmente
 
@@ -87,9 +87,9 @@ Detalhes:
 | Rota | Retorno |
 |---|---|
 | `GET /api/data` | agregados básicos (tipos de documento, publicações por ano, palavras-chave, patentes) e configuração |
-| `GET /api/insights?tipo=&ano=` | organizações, afiliações, autores (com ORCID), países, idiomas, 50 palavras-chave e tópicos do recorte |
-| `GET /api/publicacoes?tipo=&ano=&q=&page=&size=` | listagem paginada com busca; `&format=csv` exporta o recorte |
-| `GET /api/patentes?view=insights&ano=&pais=` | agregados da aba Patentes; sem `view`, listagem paginada (`q`, `page`, `size`, `format=csv`) |
+| `GET /api/insights?tipo=&ano=&instituicao=&autor=&pais=&idioma=&palavra=&topico=` | organizações, afiliações, autores (com ORCID), países, idiomas, 50 palavras-chave e tópicos do recorte |
+| `GET /api/publicacoes?<mesmos filtros>&q=&page=&size=` | listagem paginada com busca; `&format=csv` exporta o recorte |
+| `GET /api/patentes?view=insights&ano=&pais=&titular=` | agregados da aba Patentes; sem `view`, listagem paginada (`q`, `page`, `size`, `format=csv`) |
 | `POST /api/auth`, `POST /api/data` | login e gravação das edições da Administração |
 
 Na Vercel, cada arquivo em `api/` vira uma função serverless; localmente, `scripts/serve-local.mjs` expõe as mesmas rotas.

@@ -29,14 +29,21 @@ async function loadPatents() {
   return patentsPromise
 }
 
-export async function filterPatents({ ano, pais, q } = {}) {
-  const all = await loadPatents()
-  const year = ano && ano !== 'Todos' ? Number(ano) : null
-  const country = pais && pais !== 'Todos' ? pais : null
+// Filtros cruzados da aba Patentes: ano de depósito, país do titular, titular e busca textual.
+function matcher({ ano, pais, titular, q } = {}, except) {
+  const year = except !== 'ano' && ano && ano !== 'Todos' ? Number(ano) : null
+  const country = except !== 'pais' && pais && pais !== 'Todos' ? pais : null
+  const holder = except !== 'titular' && titular ? titular.toLowerCase() : null
   const needle = q ? normalizeText(q.trim()) : ''
-  return all.filter((p) => (!year || p.ano === year)
+  return (p) => (!year || p.ano === year)
     && (!country || p.pais === country)
-    && (!needle || normalizeText(`${p.numero} ${p.titulo} ${p.titular} ${p.resumo}`).includes(needle)))
+    && (!holder || p.titular.toLowerCase() === holder)
+    && (!needle || normalizeText(`${p.numero} ${p.titulo} ${p.titular} ${p.resumo}`).includes(needle))
+}
+
+export async function filterPatents(filters = {}, except = null) {
+  const all = await loadPatents()
+  return all.filter(matcher(filters, except))
 }
 
 function countBy(list, key) {
@@ -49,8 +56,10 @@ function countBy(list, key) {
 
 export async function buildPatentInsights(filters) {
   const all = await loadPatents()
-  const list = await filterPatents(filters)
-  const byYear = countBy(list.filter((p) => p.ano), 'ano').map(({ name, count }) => ({ year: Number(name), count })).sort((a, b) => a.year - b.year)
+  const { q, ...panelFilters } = filters // a busca textual vale só para a listagem
+  const list = await filterPatents(panelFilters)
+  // Cada gráfico ignora o próprio filtro, para o valor escolhido aparecer destacado entre os demais.
+  const byYear = countBy((await filterPatents(panelFilters, 'ano')).filter((p) => p.ano), 'ano').map(({ name, count }) => ({ year: Number(name), count })).sort((a, b) => a.year - b.year)
   const years = byYear.map((y) => y.year)
   return {
     total: list.length,
@@ -58,8 +67,8 @@ export async function buildPatentInsights(filters) {
     brazil: list.filter((p) => p.pais === 'Brasil').length,
     period: years.length ? [years[0], years.at(-1)] : null,
     byYear,
-    byCountry: countBy(list, 'pais').map(({ name, count }) => ({ country: name, count })),
-    byHolder: countBy(list, 'titular').map(({ name, count }) => ({ holder: name, count })),
+    byCountry: countBy(await filterPatents(panelFilters, 'pais'), 'pais').map(({ name, count }) => ({ country: name, count })),
+    byHolder: countBy(await filterPatents(panelFilters, 'titular'), 'titular').map(({ name, count }) => ({ holder: name, count })),
     // Opções dos filtros sempre sobre a base completa.
     options: {
       years: [...new Set(all.map((p) => p.ano).filter(Boolean))].sort((a, b) => a - b),

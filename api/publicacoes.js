@@ -1,4 +1,4 @@
-import { listPublications } from './lib/insights.mjs'
+import { listPublications, parseFilters } from './lib/insights.mjs'
 
 function csvCell(value) {
   const text = Array.isArray(value) ? value.join('; ') : String(value ?? '')
@@ -11,7 +11,7 @@ export default async function handler(request, response) {
   try {
     const url = new URL(request.url, 'http://localhost')
     const get = (key) => url.searchParams.get(key) || ''
-    const filters = { tipo: get('tipo'), ano: get('ano'), q: get('q') }
+    const filters = parseFilters(url)
     const result = await listPublications(filters, { page: get('page'), size: get('size') })
 
     if (get('format') === 'csv') {

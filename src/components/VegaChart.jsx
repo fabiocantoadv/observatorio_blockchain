@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react'
 import embed from 'vega-embed'
 
-export function VegaChart({ spec, className = '' }) {
+// onClick(datum): quando informado, cada marca do gráfico vira um filtro clicável.
+export function VegaChart({ spec, className = '', onClick }) {
   const container = useRef(null)
+  const clickRef = useRef(onClick)
+  clickRef.current = onClick
 
   useEffect(() => {
     let disposed = false
@@ -19,6 +22,10 @@ export function VegaChart({ spec, className = '' }) {
         return
       }
       view = result.view
+      view.addEventListener('click', (_event, item) => {
+        const datum = item?.datum
+        if (datum && clickRef.current) clickRef.current(datum)
+      })
     })
     return () => {
       disposed = true
@@ -26,5 +33,5 @@ export function VegaChart({ spec, className = '' }) {
     }
   }, [spec])
 
-  return <div ref={container} className={`vega-chart ${className}`} />
+  return <div ref={container} className={`vega-chart ${onClick ? 'clickable' : ''} ${className}`} />
 }

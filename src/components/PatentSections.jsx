@@ -3,7 +3,7 @@ import { VegaChart } from './VegaChart'
 import { DataTable, Pager } from './DataTable'
 
 // Aba "Patentes": indicadores da tabela `patentes` via /api/patentes,
-// filtrados por ano de depósito e país do titular.
+// com filtros cruzados: clicar num ano, país ou titular filtra a aba inteira (onFilter).
 
 const AXIS_LABEL = '#3b4175'
 const AXIS_MUTED = '#5c6390'
@@ -29,15 +29,21 @@ function Empty({ children = 'Nenhuma patente no recorte selecionado.' }) {
   return <p className="empty-state">{children}</p>
 }
 
-function horizontalBar(values, { label, color, height, title }) {
+const DIM_OPACITY = 0.3
+const selectedOpacity = (field, value) => (value
+  ? { condition: { test: `lower(datum[${JSON.stringify(field)}]) === ${JSON.stringify(String(value).toLowerCase())}`, value: 1 }, value: DIM_OPACITY }
+  : { value: 1 })
+
+function horizontalBar(values, { label, color, height, title, selected }) {
   return {
     $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
     background: 'transparent',
     width: 'container',
     height,
     data: { values },
-    mark: { type: 'bar', cornerRadiusEnd: 5, height: { band: 0.72 }, color },
+    mark: { type: 'bar', cornerRadiusEnd: 5, height: { band: 0.72 }, color, cursor: 'pointer' },
     encoding: {
+      opacity: selectedOpacity(label, selected),
       y: { field: label, type: 'nominal', sort: '-x', axis: { title: null, labelColor: AXIS_LABEL, labelLimit: 300, labelPadding: 9, domain: false, ticks: false } },
       x: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: AXIS_MUTED, gridColor: GRID, domain: false, ticks: false, tickCount: 6, format: 'd' } },
       tooltip: [{ field: label, title }, { field: 'count', title: 'Patentes' }],
@@ -46,7 +52,8 @@ function horizontalBar(values, { label, color, height, title }) {
   }
 }
 
-function PatentList({ ano, pais }) {
+function PatentList({ filters }) {
+  const filterKey = JSON.stringify(filters)
   const [search, setSearch] = useState('')
   const [debounced, setDebounced] = useState('')
   const [page, setPage] = useState(1)
@@ -57,18 +64,18 @@ function PatentList({ ano, pais }) {
     const timer = setTimeout(() => setDebounced(search.trim()), 300)
     return () => clearTimeout(timer)
   }, [search])
-  useEffect(() => setPage(1), [debounced, ano, pais])
+  useEffect(() => setPage(1), [debounced, filterKey])
 
   useEffect(() => {
     let active = true
     setLoading(true)
-    fetch(`/api/patentes${query({ ano, pais, q: debounced, page, size: 10 })}`)
+    fetch(`/api/patentes${query({ ...filters, q: debounced, page, size: 10 })}`)
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((payload) => { if (active) setResult(payload) })
       .catch(() => {})
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [ano, pais, debounced, page])
+  }, [filterKey, debounced, page])
 
   return <div className="data-table-wrap">
     <div className="table-toolbar">
@@ -95,30 +102,35 @@ function PatentList({ ano, pais }) {
       </table>
     </div>
     <div className="table-footer">
-      <a className="export-button" href={`/api/patentes${query({ ano, pais, q: debounced, format: 'csv' })}`}>Exportar CSV ↓</a>
+      <a className="export-button" href={`/api/patentes${query({ ...filters, q: debounced, format: 'csv' })}`}>Exportar CSV ↓</a>
       <Pager page={result.page} pages={result.pages} onPage={setPage} />
     </div>
   </div>
 }
 
-export function PatentSections({ ano, pais, onSummary }) {
+export function PatentSections({ filters, onFilter, onSummary }) {
+  const filterKey = JSON.stringify(filters)
+  const sel = (key) => (filters[key] && filters[key] !== 'Todos' ? String(filters[key]) : '')
+  const pick = (key) => (value) => onFilter?.(key, value)
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
     setError('')
-    fetch(`/api/patentes${query({ view: 'insights', ano, pais })}`)
+    fetch(`/api/patentes${query({ view: 'insights', ...filters })}`)
       .then((r) => r.ok ? r.json() : Promise.reject(new Error('Não foi possível carregar os dados de patentes.')))
       .then((payload) => { if (active) { setData(payload); onSummary?.({ total: payload.total, applications: payload.applications }) } })
       .catch((e) => { if (active) setError(e.message) })
     return () => { active = false }
-  }, [ano, pais])
+  }, [filterKey])
 
   const specs = useMemo(() => {
     if (!data) return null
     const countries = data.byCountry.slice(0, 10)
     const holders = data.byHolder.slice(0, 10)
+    // O titular escolhido sempre aparece no gráfico, mesmo fora dos 10 maiores.
+    if (sel('titular') && !holders.some((h) => h.holder.toLowerCase() === sel('titular').toLowerCase())) holders.push(...data.byHolder.filter((h) => h.holder.toLowerCase() === sel('titular').toLowerCase()))
     return {
       years: {
         $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
@@ -127,18 +139,19 @@ export function PatentSections({ ano, pais, onSummary }) {
         height: 260,
         data: { values: data.byYear },
         layer: [
-          { mark: { type: 'bar', color: '#001eff', cornerRadiusEnd: 4, width: { band: 0.7 } } },
+          { mark: { type: 'bar', color: '#001eff', cornerRadiusEnd: 4, width: { band: 0.7 }, cursor: 'pointer' } },
           { mark: { type: 'text', dy: -8, color: '#0a0a8c', fontWeight: 700, fontSize: 11, font: 'Manrope, Arial, sans-serif' }, encoding: { text: { field: 'count', type: 'quantitative' } } },
         ],
         encoding: {
           x: { field: 'year', type: 'ordinal', axis: { title: null, labelColor: AXIS_MUTED, labelAngle: 0, domain: false, ticks: false, labelPadding: 8 } },
           y: { field: 'count', type: 'quantitative', axis: { title: null, labelColor: AXIS_MUTED, gridColor: GRID, domain: false, ticks: false, tickCount: 5, format: 'd' } },
+          opacity: sel('ano') ? { condition: { test: `datum.year == ${Number(sel('ano'))}`, value: 1 }, value: DIM_OPACITY } : { value: 1 },
           tooltip: [{ field: 'year', title: 'Ano de depósito' }, { field: 'count', title: 'Patentes' }],
         },
         config: { axis: { labelFont: 'Manrope, Arial, sans-serif' }, view: { stroke: null } },
       },
-      countries: horizontalBar(countries, { label: 'country', color: '#0a0a8c', height: 260, title: 'País do titular' }),
-      holders: horizontalBar(holders, { label: 'holder', color: '#001eff', height: 360, title: 'Titular' }),
+      countries: horizontalBar(countries, { label: 'country', color: '#0a0a8c', height: 260, title: 'País do titular', selected: sel('pais') }),
+      holders: horizontalBar(holders, { label: 'holder', color: '#001eff', height: 360, title: 'Titular', selected: sel('titular') }),
     }
   }, [data])
 
@@ -151,24 +164,24 @@ export function PatentSections({ ano, pais, onSummary }) {
     {data.total === 0 ? <Empty /> : <>
       <section className="detail-grid">
         <Panel label="TENDÊNCIA" title="Depósitos por ano" note="Ano da data de depósito. Pedidos ficam em sigilo por até 18 meses, por isso os anos mais recentes aparecem incompletos.">
-          <VegaChart spec={specs.years} />
+          <VegaChart spec={specs.years} onClick={(d) => d.year && pick('ano')(String(d.year))} />
         </Panel>
         <Panel label="GEOGRAFIA" title="Depósitos por país do titular" chip={data.byCountry.length > 10 ? 'Top 10' : undefined}>
-          <VegaChart spec={specs.countries} />
+          <VegaChart spec={specs.countries} onClick={(d) => d.country && pick('pais')(d.country)} />
         </Panel>
       </section>
 
       <section className="detail-grid">
         <Panel label="TITULARES" title="Principais titulares" chip={data.byHolder.length > 10 ? 'Top 10' : undefined} note={leadHolder ? `Líder: ${leadHolder.holder} (${fmt(leadHolder.count)}). Nomes como aparecem na base; variações de grafia do mesmo titular não foram unificadas.` : undefined}>
-          <VegaChart spec={specs.holders} />
+          <VegaChart spec={specs.holders} onClick={(d) => d.holder && pick('titular')(d.holder)} />
         </Panel>
         <Panel label="TITULARES" title="Titulares" chip={`${fmt(data.byHolder.length)} titulares`}>
-          <DataTable columns={[{ key: 'holder', label: 'Titular' }, { key: 'count', label: 'Patentes', align: 'right' }]} rows={data.byHolder} exportName="titulares.csv" />
+          <DataTable columns={[{ key: 'holder', label: 'Titular' }, { key: 'count', label: 'Patentes', align: 'right' }]} rows={data.byHolder} exportName="titulares.csv" onRowClick={(row) => pick('titular')(row.holder)} rowKey="holder" selectedKey={sel('titular')} />
         </Panel>
       </section>
 
       <Panel label="REGISTROS" title="Listagem das patentes" note="Clique no título para ver o resumo.">
-        <PatentList ano={ano} pais={pais} />
+        <PatentList filters={filters} />
       </Panel>
     </>}
   </div>

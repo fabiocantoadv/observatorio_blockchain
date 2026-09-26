@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
-import { VegaChart } from './components/VegaChart'
+import { useEffect, useState } from 'react'
 import { AdminPanel } from './components/AdminPanel'
 import { AdminLoginModal } from './components/AdminLoginModal'
 import { ProfileModal } from './components/ProfileModal'
@@ -8,6 +7,43 @@ import { PatentSections } from './components/PatentSections'
 import logoObservatorio from './assets/logo-observatorio-blockchain.png'
 
 const DATA_TABS = ['Publicações', 'Patentes']
+
+// Filtros cruzados: os gráficos e tabelas acrescentam critérios ao clicar (ver DetailSections e PatentSections).
+const EMPTY_PUB_FILTERS = { tipo: 'Todos', ano: 'Todos', instituicao: '', autor: '', pais: '', idioma: '', palavra: '', topico: '' }
+const EMPTY_PATENT_FILTERS = { ano: 'Todos', pais: 'Todos', titular: '' }
+const PUB_FILTER_LABELS = { tipo: 'Tipo', ano: 'Ano', instituicao: 'Instituição', autor: 'Autor', pais: 'País', idioma: 'Idioma', palavra: 'Palavra-chave', topico: 'Tópico' }
+const PATENT_FILTER_LABELS = { ano: 'Ano de depósito', pais: 'País do titular', titular: 'Titular' }
+const LANGUAGE_NAMES = { por: 'Português', eng: 'Inglês', spa: 'Espanhol', ita: 'Italiano', fra: 'Francês', deu: 'Alemão', na: 'Não informado' }
+
+let regionNames
+function countryName(code) {
+  try {
+    regionNames ||= new Intl.DisplayNames(['pt-BR'], { type: 'region' })
+    return regionNames.of(code) || code
+  } catch {
+    return code
+  }
+}
+
+const isActive = (value) => Boolean(value) && value !== 'Todos'
+
+function describeFilter(key, value) {
+  if (key === 'pais' && /^[A-Z]{2}$/.test(value)) return countryName(value)
+  if (key === 'idioma') return LANGUAGE_NAMES[value] || value
+  return value
+}
+
+function FilterChips({ filters, labels, onRemove, onClear }) {
+  const active = Object.entries(filters).filter(([, value]) => isActive(value))
+  if (!active.length) return null
+  return <div className="filter-chips" aria-label="Filtros aplicados">
+    <span className="filter-chips-label">Filtrando por</span>
+    {active.map(([key, value]) => <button key={key} type="button" className="filter-chip" onClick={() => onRemove(key)} title="Remover este filtro">
+      <small>{labels[key]}</small>{describeFilter(key, value)}<span aria-hidden="true">×</span>
+    </button>)}
+    {active.length > 1 && <button type="button" className="clear-filter" onClick={onClear}>Limpar todos</button>}
+  </div>
+}
 
 const defaultProfile = { name: 'Administrador', initials: 'AD', photo: '' }
 
@@ -47,22 +83,30 @@ export default function App() {
   const [data, setData] = useState(emptyData)
   const [databaseVersion, setDatabaseVersion] = useState(null)
   const [storageState, setStorageState] = useState('seed')
-  const [selectedType, setSelectedType] = useState('Todos')
-  const [selectedYear, setSelectedYear] = useState('Todos')
+  const [pubFilters, setPubFilters] = useState(EMPTY_PUB_FILTERS)
   const [activeTab, setActiveTab] = useState('Publicações')
-  const [yearSort, setYearSort] = useState('cronologica')
   const [pubSummary, setPubSummary] = useState(null)
   const [patentSummary, setPatentSummary] = useState(null)
-  const [patentYear, setPatentYear] = useState('Todos')
-  const [patentCountry, setPatentCountry] = useState('Todos')
+  const [patentFilters, setPatentFilters] = useState(EMPTY_PATENT_FILTERS)
   const [patentOptions, setPatentOptions] = useState({ years: [], countries: [] })
   const [activePage, setActivePage] = useState('Visão geral')
   const [adminCredentials, setAdminCredentials] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  const { documentTypes, keywords, publicationsByYear, source } = data
+  const { documentTypes, publicationsByYear, source } = data
   const totalDocuments = documentTypes.reduce((sum, item) => sum + item.count, 0)
-  const palette = documentTypes.map((item) => item.color)
+  const pubFiltered = Object.values(pubFilters).some(isActive)
+  const patentFiltered = Object.values(patentFilters).some(isActive)
+
+  // Clicar de novo no mesmo valor remove o filtro.
+  const toggleFilter = (setter, empty) => (key, value) => setter((current) => ({
+    ...current,
+    [key]: String(current[key]).toLowerCase() === String(value).toLowerCase() ? empty[key] : String(value),
+  }))
+  const togglePubFilter = toggleFilter(setPubFilters, EMPTY_PUB_FILTERS)
+  const togglePatentFilter = toggleFilter(setPatentFilters, EMPTY_PATENT_FILTERS)
+  const setPubFilter = (key, value) => setPubFilters((current) => ({ ...current, [key]: value }))
+  const setPatentFilter = (key, value) => setPatentFilters((current) => ({ ...current, [key]: value }))
 
   useEffect(() => {
     let active = true
@@ -113,71 +157,6 @@ export default function App() {
     setData(normalizeData(payload.data))
     setDatabaseVersion(payload.etag || null)
     setStorageState(payload.storage || 'blob')
-  }
-
-  const filteredTypes = selectedType === 'Todos'
-    ? documentTypes
-    : documentTypes.filter((item) => item.type === selectedType)
-  const selectedCount = filteredTypes.reduce((sum, item) => sum + item.count, 0)
-  const filteredYears = selectedYear === 'Todos'
-    ? publicationsByYear
-    : publicationsByYear.filter((item) => item.year === Number(selectedYear))
-
-  const donutValues = useMemo(() => filteredTypes.map((item) => ({
-    ...item,
-    share: item.count / totalDocuments,
-  })), [filteredTypes])
-
-  const donutSpec = useMemo(() => ({
-    $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
-    background: 'transparent',
-    width: 300,
-    height: 245,
-    data: { values: donutValues },
-    mark: { type: 'arc', innerRadius: 72, stroke: '#ffffff', strokeWidth: 2 },
-    encoding: {
-      theta: { field: 'count', type: 'quantitative' },
-      color: { field: 'type', type: 'nominal', scale: { domain: documentTypes.map((d) => d.type), range: palette }, legend: null },
-      tooltip: [
-        { field: 'type', title: 'Tipo' },
-        { field: 'count', title: 'Documentos', format: ',' },
-        { field: 'share', title: '% do total', format: '.1%' }
-      ]
-    },
-    view: { stroke: null }
-  }), [donutValues])
-
-  const trendSpec = useMemo(() => ({
-    $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
-    background: 'transparent',
-    width: 'container',
-    height: 260,
-    data: { values: filteredYears },
-    encoding: {
-      x: {
-        field: 'year', type: 'ordinal',
-        sort: yearSort === 'crescente' ? { field: 'documents', order: 'ascending' } : { field: 'year', order: 'ascending' },
-        axis: { title: null, labelColor: '#5c6390', labelAngle: 0, labelPadding: 8, labelOverlap: true, domain: false, ticks: false }
-      },
-      y: { field: 'documents', type: 'quantitative', axis: { title: null, labelColor: '#5c6390', gridColor: '#e4e6f3', domain: false, ticks: false, tickCount: 6 }, scale: { zero: true } },
-      tooltip: [{ field: 'year', title: 'Ano' }, { field: 'documents', title: 'Documentos', format: ',' }]
-    },
-    layer: [
-      { mark: { type: 'bar', color: '#001eff', cornerRadiusEnd: 4, width: { band: 0.72 } } },
-      { mark: { type: 'text', dy: -7, color: '#0a0a8c', fontSize: 10, fontWeight: 700, font: 'Manrope, Arial, sans-serif' }, encoding: { text: { field: 'documents', type: 'quantitative', format: ',' } } }
-    ],
-    config: { axis: { labelFont: 'Manrope, Arial, sans-serif' }, view: { stroke: null } }
-  }), [filteredYears, yearSort])
-
-
-  const typeRows = filteredTypes.map((item) => ({
-    ...item,
-    percent: `${((item.count / totalDocuments) * 100).toFixed(1).replace('.', ',')}%`
-  }))
-
-  function clearFilters() {
-    setSelectedType('Todos')
-    setSelectedYear('Todos')
   }
 
   function navigate(page) {
@@ -240,63 +219,42 @@ export default function App() {
           {DATA_TABS.map((tab) => <button key={tab} role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab}</button>)}
         </div>
         {activeTab === 'Publicações'
-          ? <FilterTotal label="Total de publicações" value={compact(pubSummary ? pubSummary.total : selectedCount)} detail={selectedType === 'Todos' && selectedYear === 'Todos' ? 'Base consolidada' : 'No recorte filtrado'} />
+          ? <FilterTotal label="Total de publicações" value={compact(pubSummary ? pubSummary.total : totalDocuments)} detail={pubFiltered ? 'No recorte filtrado' : 'Base consolidada'} />
           : <FilterTotal label="Total de patentes" value={patentSummary ? compact(patentSummary.total) : '—'} detail={patentSummary ? `${compact(patentSummary.applications)} números de pedido distintos` : ''} />}
         {activeTab === 'Publicações' ? <>
           <label>Tipo documental
-            <select value={selectedType} onChange={(event) => setSelectedType(event.target.value)}>
+            <select value={pubFilters.tipo} onChange={(event) => setPubFilter('tipo', event.target.value)}>
               <option>Todos</option>
               {documentTypes.map((item) => <option key={item.type}>{item.type}</option>)}
             </select>
           </label>
           <label>Ano de publicação
-            <select value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)}>
+            <select value={pubFilters.ano} onChange={(event) => setPubFilter('ano', event.target.value)}>
               <option>Todos</option>
               {publicationsByYear.map((item) => <option key={item.year}>{item.year}</option>)}
+              {isActive(pubFilters.ano) && !publicationsByYear.some((item) => String(item.year) === pubFilters.ano) && <option>{pubFilters.ano}</option>}
             </select>
           </label>
-          {(selectedType !== 'Todos' || selectedYear !== 'Todos') && <button className="clear-filter" onClick={clearFilters}>Limpar filtros</button>}
+          <FilterChips filters={pubFilters} labels={PUB_FILTER_LABELS} onRemove={(key) => setPubFilter(key, EMPTY_PUB_FILTERS[key])} onClear={() => setPubFilters(EMPTY_PUB_FILTERS)} />
         </> : <>
           <label>País do titular
-            <select value={patentCountry} onChange={(event) => setPatentCountry(event.target.value)}>
+            <select value={patentFilters.pais} onChange={(event) => setPatentFilter('pais', event.target.value)}>
               <option>Todos</option>
               {patentOptions.countries.map((country) => <option key={country}>{country}</option>)}
             </select>
           </label>
           <label>Ano de depósito
-            <select value={patentYear} onChange={(event) => setPatentYear(event.target.value)}>
+            <select value={patentFilters.ano} onChange={(event) => setPatentFilter('ano', event.target.value)}>
               <option>Todos</option>
               {patentOptions.years.map((year) => <option key={year}>{year}</option>)}
             </select>
           </label>
-          {(patentCountry !== 'Todos' || patentYear !== 'Todos') && <button className="clear-filter" onClick={() => { setPatentCountry('Todos'); setPatentYear('Todos') }}>Limpar filtros</button>}
+          <FilterChips filters={patentFilters} labels={PATENT_FILTER_LABELS} onRemove={(key) => setPatentFilter(key, EMPTY_PATENT_FILTERS[key])} onClear={() => setPatentFilters(EMPTY_PATENT_FILTERS)} />
         </>}
       </section>}
 
-      {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? activeTab === 'Patentes' ? <div id="dashboard-content"><PatentSections ano={patentYear} pais={patentCountry} onSummary={setPatentSummary} /></div> : <div id="dashboard-content">
-      <section className="main-grid">
-        <article className="panel composition-panel">
-          <div className="panel-heading"><div><h2>Tipos de documentos</h2></div><span className="data-chip">{selectedType === 'Todos' ? 'Todos os tipos' : selectedType}</span></div>
-          <div className="donut-layout">
-            <div className="donut-wrap"><VegaChart spec={donutSpec}/><div className="donut-total"><strong>{compact(selectedCount)}</strong><span>documentos</span></div></div>
-            <ul className="legend-list">
-              {typeRows.map((item) => <li key={item.type}><span style={{ background: item.color }}></span><div><b>{item.type}</b><small>{compact(item.count)} · {item.percent}</small></div></li>)}
-            </ul>
-          </div>
-        </article>
-        <article className="panel trend-panel">
-          <div className="panel-heading"><div><h2>Publicações por ano</h2></div>
-            <div className="sort-toggle" role="group" aria-label="Ordenação das colunas">
-              {[['cronologica', 'Cronológica'], ['crescente', 'Crescente']].map(([value, label]) => <button key={value} className={yearSort === value ? 'active' : ''} aria-pressed={yearSort === value} onClick={() => setYearSort(value)}>{label}</button>)}
-            </div>
-          </div>
-          <VegaChart spec={trendSpec}/>
-          <p className="panel-note">Número de publicações por ano de publicação. {yearSort === 'crescente' ? 'Colunas ordenadas do menor para o maior valor.' : 'Colunas em ordem cronológica.'}</p>
-        </article>
-      </section>
-
-
-      <DetailSections selectedType={selectedType} selectedYear={selectedYear} onSummary={setPubSummary} /></div> : <section className="about-panel" id="dashboard-content">
+      {activePage === 'Administração' && adminCredentials ? <AdminPanel data={data} onSave={saveData} onLogout={logout} storageState={storageState} /> : activePage !== 'Sobre os dados' ? activeTab === 'Patentes' ? <div id="dashboard-content"><PatentSections filters={patentFilters} onFilter={togglePatentFilter} onSummary={setPatentSummary} /></div> : <div id="dashboard-content">
+      <DetailSections filters={pubFilters} onFilter={togglePubFilter} onSummary={setPubSummary} /></div> : <section className="about-panel" id="dashboard-content">
         <p className="section-label">TRANSPARÊNCIA</p>
         <h2>Sobre os dados</h2>
         <p>Esta visualização consolida a produção científica e as patentes sobre blockchain a partir de três bases públicas: OpenAlex, OASISbr (IBICT) e uma base de patentes de Google Patents, INPI e IBICT. Os dados são ingeridos dos arquivos CSV para um banco SQLite, que alimenta os gráficos.</p>

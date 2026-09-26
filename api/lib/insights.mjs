@@ -1,4 +1,4 @@
-import { db } from './db.mjs'
+import { db, TYPE_STYLE } from './db.mjs'
 
 // Agregados detalhados (instituições, autores, países, idiomas, palavras-chave)
 // calculados a partir das tabelas `publicacoes` e `keywords_publicacao`.
@@ -137,14 +137,54 @@ function normalizeText(value) {
   return String(value || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
-export async function filterRecords({ tipo, ano, q } = {}) {
+// Filtros cruzados: cada clique no painel acrescenta um critério. Todos combinam por "E".
+//   tipo, ano        → campos do documento
+//   instituicao      → o documento tem essa afiliação
+//   autor            → o documento tem esse autor
+//   pais             → código ISO do país dos autores (OpenAlex)
+//   idioma           → código (por, eng…) ou "na" para idioma não informado
+//   palavra          → palavra-chave (OASISbr)
+//   topico           → tópico principal (OpenAlex)
+//   q                → busca textual (só na listagem)
+export const FILTER_KEYS = ['tipo', 'ano', 'instituicao', 'autor', 'pais', 'idioma', 'palavra', 'topico']
+
+const lower = (v) => String(v || '').toLowerCase()
+
+function activeFilters(filters = {}) {
+  const f = {}
+  for (const key of [...FILTER_KEYS, 'q']) {
+    const value = String(filters[key] ?? '').trim()
+    if (value && value !== 'Todos') f[key] = value
+  }
+  return f
+}
+
+const TESTS = {
+  tipo: (r, v) => r.tipo === v,
+  ano: (r, v) => r.ano === Number(v),
+  instituicao: (r, v) => r.institutions.some((x) => lower(x) === lower(v)),
+  autor: (r, v) => r.authors.some((x) => lower(x) === lower(v)),
+  pais: (r, v) => r.countries.includes(v.toUpperCase()),
+  idioma: (r, v) => (v === 'na' ? r.languages.length === 0 : r.languages.includes(v)),
+  palavra: (r, v) => r.keywords.some((k) => lower(k.keyword) === lower(v)),
+  topico: (r, v) => r.topic === v,
+  q: (r, v) => normalizeText(`${r.titulo} ${r.authors.join(' ')} ${r.institutions.join(' ')}`).includes(normalizeText(v)),
+}
+
+function matcher(filters, except) {
+  const entries = Object.entries(filters).filter(([key]) => key !== except)
+  return (r) => entries.every(([key, value]) => TESTS[key](r, value))
+}
+
+export function parseFilters(url) {
+  const f = {}
+  for (const key of [...FILTER_KEYS, 'q']) f[key] = url.searchParams.get(key) || ''
+  return f
+}
+
+export async function filterRecords(filters = {}) {
   const records = await loadRecords()
-  const year = ano && ano !== 'Todos' ? Number(ano) : null
-  const type = tipo && tipo !== 'Todos' ? tipo : null
-  const needle = q ? normalizeText(q.trim()) : ''
-  return records.filter((r) => (!type || r.tipo === type)
-    && (!year || r.ano === year)
-    && (!needle || normalizeText(`${r.titulo} ${r.authors.join(' ')} ${r.institutions.join(' ')}`).includes(needle)))
+  return records.filter(matcher(activeFilters(filters)))
 }
 
 function countBy(records, pick, limit) {
@@ -163,37 +203,58 @@ function countBy(records, pick, limit) {
   return limit ? rows.slice(0, limit) : rows
 }
 
-export async function buildInsights(filters) {
-  const records = await filterRecords(filters)
-  const withCountry = records.filter((r) => r.countries.length)
-  const withLanguage = records.filter((r) => r.languages.length)
-  const withInstitution = records.filter((r) => r.institutions.length)
-  const withKeywords = records.filter((r) => r.keywords.length)
-  const withTopic = records.filter((r) => r.topic)
+export async function buildInsights(rawFilters) {
+  const all = await loadRecords()
+  const filters = activeFilters(rawFilters)
+  delete filters.q
+  // Cada gráfico é calculado com todos os filtros, menos o da sua própria dimensão:
+  // assim o valor escolhido aparece destacado ao lado das alternativas (e dá para trocar com um clique).
+  const subset = (except) => all.filter(matcher(filters, except))
+  const records = subset(null)
 
-  const keywordRows = countBy(records, (r) => r.keywords.map((k) => ({ key: k.keyword.toLowerCase(), ...k })), 50)
-    .map(({ label, documents }) => ({ keyword: label.keyword, group: label.group, documents }))
+  const byTypeSet = subset('tipo')
+  const typeCounts = new Map()
+  for (const r of byTypeSet) typeCounts.set(r.tipo, (typeCounts.get(r.tipo) || 0) + 1)
+  const byType = TYPE_STYLE.map(([type, color]) => ({ type, color, count: typeCounts.get(type) || 0 })).filter((t) => t.count > 0)
+
+  const yearCounts = new Map()
+  for (const r of subset('ano')) if (r.ano) yearCounts.set(r.ano, (yearCounts.get(r.ano) || 0) + 1)
+  const byYear = [...yearCounts.entries()].map(([year, documents]) => ({ year, documents })).sort((a, b) => a.year - b.year)
+
+  const instSet = subset('instituicao')
+  const authorSet = subset('autor')
+  const countrySet = subset('pais').filter((r) => r.countries.length)
+  const langSet = subset('idioma')
+  const langWith = langSet.filter((r) => r.languages.length)
+  const kwSet = subset('palavra')
+  const topicSet = subset('topico').filter((r) => r.topic)
+
+  const authorRows = countBy(authorSet, (r) => r.authors)
 
   return {
     total: records.length,
+    filters,
     coverage: {
-      institutions: withInstitution.length,
-      countries: withCountry.length,
-      languages: withLanguage.length,
-      keywords: withKeywords.length,
-      topics: withTopic.length,
+      institutions: instSet.filter((r) => r.institutions.length).length,
+      countries: countrySet.length,
+      languages: langWith.length,
+      keywords: kwSet.filter((r) => r.keywords.length).length,
+      topics: topicSet.length,
     },
-    institutions: countBy(records, (r) => r.institutions).map(({ label, documents }) => ({ name: label, documents })),
-    authors: countBy(records, (r) => r.authors).map(({ label, documents }) => ({ name: label, documents, orcid: orcidByName.get(authorKey(label)) || '' })),
-    authorsWithOrcid: countBy(records, (r) => r.authors).filter(({ label }) => orcidByName.has(authorKey(label))).length,
-    countries: countBy(withCountry, (r) => r.countries, 10).map(({ label, documents }) => ({ code: label, documents, share: documents / withCountry.length })),
+    byType,
+    byYear,
+    institutions: countBy(instSet, (r) => r.institutions).map(({ label, documents }) => ({ name: label, documents })),
+    authors: authorRows.map(({ label, documents }) => ({ name: label, documents, orcid: orcidByName.get(authorKey(label)) || '' })),
+    authorsWithOrcid: authorRows.filter(({ label }) => orcidByName.has(authorKey(label))).length,
+    countries: countBy(countrySet, (r) => r.countries, 10).map(({ label, documents }) => ({ code: label, documents, share: documents / countrySet.length })),
     languages: [
-      ...countBy(withLanguage, (r) => r.languages).map(({ label, documents }) => ({ code: label, documents })),
-      ...(records.length - withLanguage.length ? [{ code: 'na', documents: records.length - withLanguage.length }] : []),
+      ...countBy(langWith, (r) => r.languages).map(({ label, documents }) => ({ code: label, documents })),
+      ...(langSet.length - langWith.length ? [{ code: 'na', documents: langSet.length - langWith.length }] : []),
     ],
-    keywords: keywordRows,
+    keywords: countBy(kwSet, (r) => r.keywords.map((k) => ({ key: k.keyword.toLowerCase(), ...k })), 50)
+      .map(({ label, documents }) => ({ keyword: label.keyword, group: label.group, documents })),
     // Tópico principal do OpenAlex (primary_topic): todos os tópicos, do mais ao menos frequente.
-    topics: countBy(withTopic, (r) => [r.topic]).map(({ label, documents }) => ({ topic: label, documents })),
+    topics: countBy(topicSet, (r) => [r.topic]).map(({ label, documents }) => ({ topic: label, documents })),
   }
 }
 

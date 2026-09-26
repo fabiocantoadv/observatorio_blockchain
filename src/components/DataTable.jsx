@@ -35,7 +35,8 @@ export function Pager({ page, pages, onPage }) {
 }
 
 // Tabela com busca, ordenação por coluna, paginação e exportação CSV (tudo no cliente).
-export function DataTable({ columns, rows, pageSize = 10, searchKeys, exportName, emptyText = 'Nenhum registro.' }) {
+// onRowClick(row): torna cada linha um filtro clicável; selectedKey + rowKey destacam a linha escolhida.
+export function DataTable({ columns, rows, pageSize = 10, searchKeys, exportName, emptyText = 'Nenhum registro.', onRowClick, rowKey, selectedKey }) {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState({ key: null, dir: 'desc' })
   const [page, setPage] = useState(1)
@@ -78,10 +79,17 @@ export function DataTable({ columns, rows, pageSize = 10, searchKeys, exportName
           </th>)}
         </tr></thead>
         <tbody>
-          {visible.length ? visible.map((row, index) => <tr key={index}>
-            <td className="num muted">{(current - 1) * pageSize + index + 1}</td>
-            {columns.map((c) => <td key={c.key} className={c.align === 'right' ? 'num' : ''}>{c.render ? c.render(row) : row[c.key]}</td>)}
-          </tr>) : <tr><td colSpan={columns.length + 1} className="muted">{emptyText}</td></tr>}
+          {visible.length ? visible.map((row, index) => {
+            const selected = Boolean(selectedKey) && rowKey && String(row[rowKey]).toLowerCase() === String(selectedKey).toLowerCase()
+            return <tr key={index} className={`${onRowClick ? 'clickable-row' : ''} ${selected ? 'selected-row' : ''}`} onClick={onRowClick ? (event) => { if (!event.target.closest('a')) onRowClick(row) } : undefined}>
+              <td className="num muted">{(current - 1) * pageSize + index + 1}</td>
+              {columns.map((c, ci) => <td key={c.key} className={c.align === 'right' ? 'num' : ''}>
+                {ci === 0 && onRowClick
+                  ? <button type="button" className="row-filter" aria-pressed={selected} title={selected ? 'Remover filtro' : 'Filtrar o painel por este valor'}>{c.render ? c.render(row) : row[c.key]}</button>
+                  : (c.render ? c.render(row) : row[c.key])}
+              </td>)}
+            </tr>
+          }) : <tr><td colSpan={columns.length + 1} className="muted">{emptyText}</td></tr>}
         </tbody>
       </table>
     </div>
