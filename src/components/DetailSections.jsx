@@ -90,23 +90,33 @@ function Empty({ children = 'Sem dados para o recorte selecionado.' }) {
 
 const DIM_OPACITY = 0.3
 
-function horizontalBar(values, { field, label, color, height, tooltipTitle, shareField, selected, selectField }) {
+function horizontalBar(values, { field, label, color, height, tooltipTitle, shareField, selected, selectField, showValues = false, valueLabel }) {
   const key = selectField || label
+  const rows = values.map((v) => ({ ...v, valueText: valueLabel ? valueLabel(v) : fmt(v[field]) }))
+  const max = Math.max(0, ...values.map((v) => v[field]))
   return {
     $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
     background: 'transparent',
     width: 'container',
     height,
-    data: { values },
-    mark: { type: 'bar', cornerRadiusEnd: 5, height: { band: 0.72 }, color, cursor: 'pointer' },
+    data: { values: rows },
     encoding: {
       opacity: selected ? { condition: { test: `lower(datum[${JSON.stringify(key)}]) === ${JSON.stringify(String(selected).toLowerCase())}`, value: 1 }, value: DIM_OPACITY } : { value: 1 },
       y: { field: label, type: 'nominal', sort: '-x', axis: { title: null, labelColor: AXIS_LABEL, labelLimit: 260, labelPadding: 9, domain: false, ticks: false } },
-      x: { field, type: 'quantitative', axis: { title: null, labelColor: AXIS_MUTED, gridColor: GRID, domain: false, ticks: false, tickCount: 6 } },
+      // Com os valores à mostra, sobra espaço à direita da maior barra para o rótulo.
+      x: { field, type: 'quantitative', axis: { title: null, labelColor: AXIS_MUTED, gridColor: GRID, domain: false, ticks: false, tickCount: 6, labelExpr: "replace(datum.label, ',', '.')" }, ...(showValues ? { scale: { domainMax: max * (valueLabel ? 1.32 : 1.14), nice: false } } : {}) },
       tooltip: [{ field: label, title: tooltipTitle }, { field, title: 'Documentos', format: ',' }, ...(shareField ? [{ field: shareField, title: '% dos documentos', format: '.1%' }] : [])],
     },
+    layer: [
+      { mark: { type: 'bar', cornerRadiusEnd: 5, height: { band: 0.72 }, color, cursor: 'pointer' } },
+      ...(showValues ? [{ mark: { type: 'text', align: 'left', baseline: 'middle', dx: 5, color: '#0a0a8c', fontSize: 10, fontWeight: 700, font: 'Manrope, Arial, sans-serif', cursor: 'pointer' }, encoding: { text: { field: 'valueText' } } }] : []),
+    ],
     config: { axis: { labelFont: 'Manrope, Arial, sans-serif' }, view: { stroke: null } },
   }
+}
+
+function ValuesCheck({ checked, onChange }) {
+  return <label className="chart-check"><input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /> Mostrar valores</label>
 }
 
 // Treemap genérico por frequência. items: [{ label, documents, ...campos extras }].
@@ -316,6 +326,8 @@ export function DetailSections({ filters, onFilter, onSummary }) {
   const [typeValues, setTypeValues] = useState(false)
   const [langChart, setLangChart] = useState('rosca')
   const [langValues, setLangValues] = useState(false)
+  const [orgValues, setOrgValues] = useState(false)
+  const [countryValues, setCountryValues] = useState(false)
   const filterKey = JSON.stringify(filters)
   const sel = (key) => (filters[key] && filters[key] !== 'Todos' ? String(filters[key]) : '')
 
@@ -368,14 +380,14 @@ export function DetailSections({ filters, onFilter, onSummary }) {
         ],
         config: { axis: { labelFont: 'Manrope, Arial, sans-serif' }, view: { stroke: null } },
       },
-      orgs: horizontalBar(orgs, { field: 'documents', label: 'name', color: '#001eff', height: BAR_ROW_HEIGHT, tooltipTitle: 'Instituição', selected: sel('instituicao') }),
-      countries: horizontalBar(countries, { field: 'documents', label: 'country', color: '#0a0a8c', height: BAR_ROW_HEIGHT, tooltipTitle: 'País', shareField: 'share', selected: sel('pais'), selectField: 'code' }),
+      orgs: horizontalBar(orgs, { field: 'documents', label: 'name', color: '#001eff', height: BAR_ROW_HEIGHT, tooltipTitle: 'Instituição', selected: sel('instituicao'), showValues: orgValues }),
+      countries: horizontalBar(countries, { field: 'documents', label: 'country', color: '#0a0a8c', height: BAR_ROW_HEIGHT, tooltipTitle: 'País', shareField: 'share', selected: sel('pais'), selectField: 'code', showValues: countryValues, valueLabel: (c) => `${fmt(c.documents)} · ${pct(c.share)}` }),
       languages: categoryChart(languages.map((l) => ({ key: l.code, name: l.language, short: LANGUAGE_SHORT[l.code] || l.code.toUpperCase(), value: l.documents, color: LANGUAGE_COLORS[l.code] || '#8c90b8', share: l.share })), {
         mode: langChart, showValues: langValues, selected: selLang, title: 'Idioma', width: 220, height: 220, innerRadius: 58,
       }),
       languageRows: languages,
     }
-  }, [data, yearSort, typeChart, typeValues, langChart, langValues])
+  }, [data, yearSort, typeChart, typeValues, langChart, langValues, orgValues, countryValues])
 
   if (error) return <p className="panel-note detail-error">{error}</p>
   if (!data || !specs) return <p className="panel-note detail-loading">Carregando indicadores detalhados…</p>
@@ -431,10 +443,10 @@ export function DetailSections({ filters, onFilter, onSummary }) {
     </section>
 
     <section className="detail-grid">
-      <Panel title="Organizações" chip="Top 20" onClear={clear('instituicao')} note={`Afiliação informada em ${fmt(data.coverage.institutions)} documentos. Cada documento conta uma vez por instituição. Clique numa barra para filtrar o painel.`}>
+      <Panel title="Organizações" chip="Top 20" onClear={clear('instituicao')} actions={<ValuesCheck checked={orgValues} onChange={setOrgValues} />} note={`Afiliação informada em ${fmt(data.coverage.institutions)} documentos. Cada documento conta uma vez por instituição. Clique numa barra para filtrar o painel.`}>
         {data.institutions.length ? <VegaChart spec={specs.orgs} onClick={(d) => d.name && pick('instituicao')(d.name)} /> : <Empty />}
       </Panel>
-      <Panel title="Países dos autores" chip="Top 10" onClear={clear('pais')} note={`Com base nos ${fmt(data.coverage.countries)} documentos do OpenAlex com país informado; um documento conta para cada país dos seus autores.`}>
+      <Panel title="Países dos autores" chip="Top 10" onClear={clear('pais')} actions={<ValuesCheck checked={countryValues} onChange={setCountryValues} />} note={`Com base nos ${fmt(data.coverage.countries)} documentos do OpenAlex com país informado. O percentual é sobre esses documentos: cada documento conta uma vez para cada país dos seus autores, por isso a soma passa de 100%. O OASISbr não informa o país dos autores e fica de fora.`}>
         {data.countries.length ? <VegaChart spec={specs.countries} onClick={(d) => d.code && pick('pais')(d.code)} /> : <Empty>Nenhum documento do OpenAlex neste recorte (o OASISbr não informa o país dos autores).</Empty>}
       </Panel>
     </section>
