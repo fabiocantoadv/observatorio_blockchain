@@ -495,7 +495,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
           <a className="network-link" href={NETWORK_URL} target="_blank" rel="noreferrer">Abrir a rede <span>↗</span></a>
         </article>
       </div>
-      <Panel className="treemap-panel" title="Palavras-chave (50 mais utilizadas)" onClear={clear('palavra')} note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
+      <Panel className="treemap-panel" title="Palavras-chave (50 de maior ocorrência)" onClear={clear('palavra')} note={`Palavras-chave do OASISbr (${fmt(data.coverage.keywords)} documentos com palavras-chave). Percentuais sobre o total das 50 mais frequentes.`}>
         <FrequencyLegend ramp={TOPIC_RAMP} />
         {data.keywords.length ? <FrequencyTreemap items={keywordItems} labelTitle="Palavra-chave" tooltipFields={KEYWORD_TOOLTIP} shareTitle="% do top 50" ramp={TOPIC_RAMP} darkFrom={TOPIC_DARK_FROM} selected={sel('palavra')} onSelect={pick('palavra')} /> : <Empty>Nenhuma palavra-chave neste recorte (só o OASISbr traz palavras-chave).</Empty>}
       </Panel>
