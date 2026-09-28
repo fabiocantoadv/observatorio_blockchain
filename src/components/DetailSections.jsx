@@ -440,10 +440,10 @@ export function DetailSections({ filters, onFilter, onSummary }) {
     </section>
 
     <section className="detail-grid">
-      <Panel title="Afiliações" onClear={clear('instituicao')} chip={`${fmt(data.institutions.length)} instituições`}>
+      <Panel title="Afiliações" onClear={clear('instituicao')}>
         <DataTable columns={[{ key: 'name', label: 'Afiliação' }, { key: 'documents', label: 'Documentos', align: 'right' }]} rows={data.institutions} exportName="afiliacoes.csv" onRowClick={(row) => pick('instituicao')(row.name)} rowKey="name" selectedKey={sel('instituicao')} />
       </Panel>
-      <Panel title="Autores" onClear={clear('autor')} chip={`${fmt(data.authors.length)} autores`} note={`ORCID de ${fmt(data.authorsWithOrcid || 0)} autores, conforme os dados do OpenAlex (o OASISbr não traz ORCID). Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.`}>
+      <Panel title="Autores" onClear={clear('autor')} note={`ORCID de ${fmt(data.authorsWithOrcid || 0)} autores, conforme os dados do OpenAlex (o OASISbr não traz ORCID). Nomes como aparecem nas fontes: o OASISbr usa “Sobrenome, Nome” e o OpenAlex “Nome Sobrenome”.`}>
         <DataTable
           columns={[
             { key: 'name', label: 'Autor' },
@@ -489,7 +489,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
       </Panel>
     </section>
 
-    <Panel className="full-width topics-panel" title="Tópicos" onClear={clear('topico')} chip={data.topics.length > TOPICS_SHOWN ? `${TOPICS_SHOWN} de ${fmt(data.topics.length)} tópicos` : `${fmt(data.topics.length)} tópicos`} note={`Tópico principal (primary topic) atribuído pelo OpenAlex a ${fmt(data.coverage.topics)} documentos. Percentuais sobre os documentos com tópico; o OASISbr não traz esse campo.`}>
+    <Panel className="full-width topics-panel" title="Tópicos" onClear={clear('topico')} note={`Tópico principal (primary topic) atribuído pelo OpenAlex a ${fmt(data.coverage.topics)} documentos. Percentuais sobre os documentos com tópico; o OASISbr não traz esse campo.`}>
       <FrequencyLegend ramp={TOPIC_RAMP} />
       {data.topics.length
         ? <FrequencyTreemap items={topicItems} labelTitle="Tópico" shareTitle="% dos documentos com tópico" ramp={TOPIC_RAMP} darkFrom={TOPIC_DARK_FROM} selected={sel('topico')} onSelect={pick('topico')} />
