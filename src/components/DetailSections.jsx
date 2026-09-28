@@ -381,7 +381,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
         config: { axis: { labelFont: 'Manrope, Arial, sans-serif' }, view: { stroke: null } },
       },
       orgs: horizontalBar(orgs, { field: 'documents', label: 'name', color: '#001eff', height: BAR_ROW_HEIGHT, tooltipTitle: 'Instituição', selected: sel('instituicao'), showValues: orgValues }),
-      countries: horizontalBar(countries, { field: 'documents', label: 'country', color: '#0a0a8c', height: BAR_ROW_HEIGHT, tooltipTitle: 'País', shareField: 'share', selected: sel('pais'), selectField: 'code', showValues: countryValues, valueLabel: (c) => `${fmt(c.documents)} · ${pct(c.share)}` }),
+      countries: horizontalBar(countries, { field: 'documents', label: 'country', color: '#0a0a8c', height: BAR_ROW_HEIGHT, tooltipTitle: 'País', selected: sel('pais'), selectField: 'code', showValues: countryValues }),
       languages: categoryChart(languages.map((l) => ({ key: l.code, name: l.language, short: LANGUAGE_SHORT[l.code] || l.code.toUpperCase(), value: l.documents, color: LANGUAGE_COLORS[l.code] || '#8c90b8', share: l.share })), {
         mode: langChart, showValues: langValues, selected: selLang, title: 'Idioma', width: 220, height: 220, innerRadius: 58,
       }),
@@ -446,7 +446,7 @@ export function DetailSections({ filters, onFilter, onSummary }) {
       <Panel title="Organizações" chip="Top 20" onClear={clear('instituicao')} actions={<ValuesCheck checked={orgValues} onChange={setOrgValues} />} note={`Afiliação informada em ${fmt(data.coverage.institutions)} documentos. Cada documento conta uma vez por instituição. Clique numa barra para filtrar o painel.`}>
         {data.institutions.length ? <VegaChart spec={specs.orgs} onClick={(d) => d.name && pick('instituicao')(d.name)} /> : <Empty />}
       </Panel>
-      <Panel title="Países dos autores" chip="Top 10" onClear={clear('pais')} actions={<ValuesCheck checked={countryValues} onChange={setCountryValues} />} note={`Com base nos ${fmt(data.coverage.countries)} documentos do OpenAlex com país informado. O percentual é sobre esses documentos: cada documento conta uma vez para cada país dos seus autores, por isso a soma passa de 100%. O OASISbr não informa o país dos autores e fica de fora.`}>
+      <Panel title="Países dos autores" chip="Top 10" onClear={clear('pais')} actions={<ValuesCheck checked={countryValues} onChange={setCountryValues} />} note={`Com base nos ${fmt(data.coverage.countries)} documentos do OpenAlex com país informado. Cada documento conta uma vez para cada país dos seus autores. O OASISbr não informa o país dos autores e fica de fora.`}>
         {data.countries.length ? <VegaChart spec={specs.countries} onClick={(d) => d.code && pick('pais')(d.code)} /> : <Empty>Nenhum documento do OpenAlex neste recorte (o OASISbr não informa o país dos autores).</Empty>}
       </Panel>
     </section>
