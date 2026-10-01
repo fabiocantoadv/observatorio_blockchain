@@ -49,7 +49,7 @@ export function AdminPanel({ data, onSave, onLogout, storageState }) {
 
   function addItem(collection) {
     const defaults = {
-      documentTypes: { type: 'Novo tipo', count: 0, color: '#4dd4bd' },
+      documentTypes: { type: 'Novo tipo', count: 0, color: '#001eff' },
       publicationsByYear: { year: new Date().getFullYear(), documents: 0 },
       keywords: { keyword: 'Nova palavra-chave', documents: 0, group: 'Tecnologia' }
     }

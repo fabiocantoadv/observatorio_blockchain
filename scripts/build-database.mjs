@@ -4,6 +4,14 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { parseCsvFile } from './lib/csv.mjs'
 import { hashPassword } from './lib/password.mjs'
+import { buildOrcidTable } from './lib/orcid.mjs'
+import { extractIdentifier } from './lib/identifier.mjs'
+
+const identifierColumns = (id) => ({
+  identificador: id?.valor ?? null,
+  identificador_tipo: id?.tipo ?? null,
+  identificador_url: id?.url ?? null,
+})
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dataDir = join(root, 'src', 'data')
@@ -26,11 +34,11 @@ const TYPE_LABEL = {
 }
 
 const KEYWORD_GROUPS = [
-  ['Tecnologia', '#4dd4bd', ['smart contract', 'contratos inteligentes', 'ethereum', 'hyperledger', 'distributed ledger', 'consenso', 'consensus', 'immutability', 'imutabilidade', 'solidity', 'nft', 'iot', 'internet das coisas', 'technology', 'tecnologia', 'blockchain technology']],
-  ['Aplicações', '#7e8cff', ['supply chain', 'cadeia de suprimentos', 'traceability', 'rastreabilidade', 'saúde', 'health', 'logística', 'votação', 'identidade', 'educação']],
-  ['Dados', '#f2c66d', ['data sharing', 'dados', 'segurança', 'security', 'privacidade', 'privacy', 'base de dados', 'databases']],
-  ['Governança', '#f279aa', ['governança', 'governance', 'regulação', 'regulação', 'regulation', 'direito', 'lgpd', 'compliance', 'política']],
-  ['Economia', '#a879e9', ['bitcoin', 'criptomoeda', 'criptomoedas', 'cryptocurrency', 'cryptocurrencies', 'criptoativos', 'tokenização', 'token', 'moeda', 'economia', 'finanças', 'defi', 'tributação']],
+  ['Tecnologia', '#001eff', ['smart contract', 'contratos inteligentes', 'ethereum', 'hyperledger', 'distributed ledger', 'consenso', 'consensus', 'immutability', 'imutabilidade', 'solidity', 'nft', 'iot', 'internet das coisas', 'technology', 'tecnologia', 'blockchain technology']],
+  ['Aplicações', '#00f0dc', ['supply chain', 'cadeia de suprimentos', 'traceability', 'rastreabilidade', 'saúde', 'health', 'logística', 'votação', 'identidade', 'educação']],
+  ['Dados', '#ffff00', ['data sharing', 'dados', 'segurança', 'security', 'privacidade', 'privacy', 'base de dados', 'databases']],
+  ['Governança', '#6678ff', ['governança', 'governance', 'regulação', 'regulação', 'regulation', 'direito', 'lgpd', 'compliance', 'política']],
+  ['Economia', '#0a0a8c', ['bitcoin', 'criptomoeda', 'criptomoedas', 'cryptocurrency', 'cryptocurrencies', 'criptoativos', 'tokenização', 'token', 'moeda', 'economia', 'finanças', 'defi', 'tributação']],
 ]
 
 function classifyKeyword(kw) {
@@ -91,6 +99,7 @@ async function main() {
     DROP TABLE IF EXISTS patentes;
     DROP TABLE IF EXISTS metadados;
     DROP TABLE IF EXISTS usuarios;
+    DROP TABLE IF EXISTS autores_orcid;
 
     CREATE TABLE metadados (
       chave TEXT PRIMARY KEY,
@@ -115,7 +124,11 @@ async function main() {
       instituicoes TEXT,
       paises TEXT,
       citacoes INTEGER,
-      idioma TEXT
+      idioma TEXT,
+      topico_principal TEXT,
+      identificador TEXT,
+      identificador_tipo TEXT,
+      identificador_url TEXT
     );
 
     CREATE TABLE keywords_publicacao (
@@ -139,11 +152,16 @@ async function main() {
     CREATE INDEX idx_pub_tipo ON publicacoes(tipo);
     CREATE INDEX idx_pub_ano ON publicacoes(ano);
     CREATE INDEX idx_kw ON keywords_publicacao(keyword);
+
+    CREATE TABLE autores_orcid (
+      autor TEXT PRIMARY KEY,
+      orcid TEXT NOT NULL
+    );
   `)
 
   const insertPub = db.prepare(`
-    INSERT INTO publicacoes (fonte, external_id, titulo, tipo_original, tipo, ano, doi, autores, instituicoes, paises, citacoes, idioma)
-    VALUES (@fonte, @external_id, @titulo, @tipo_original, @tipo, @ano, @doi, @autores, @instituicoes, @paises, @citacoes, @idioma)
+    INSERT INTO publicacoes (fonte, external_id, titulo, tipo_original, tipo, ano, doi, autores, instituicoes, paises, citacoes, idioma, topico_principal, identificador, identificador_tipo, identificador_url)
+    VALUES (@fonte, @external_id, @titulo, @tipo_original, @tipo, @ano, @doi, @autores, @instituicoes, @paises, @citacoes, @idioma, @topico_principal, @identificador, @identificador_tipo, @identificador_url)
   `)
   const insertKw = db.prepare(`INSERT INTO keywords_publicacao (publicacao_id, keyword, grupo) VALUES (?, ?, ?)`)
   const insertPat = db.prepare(`
@@ -174,7 +192,9 @@ async function main() {
         instituicoes: (o.inst_display_names || '').trim() || null,
         paises: (o.authorships_countries || '').trim() || null,
         citacoes: Number.parseInt(o.cited_by_count, 10) || 0,
-        idioma: null,
+        idioma: (o.language || '').trim() || null,
+        topico_principal: (o.primary_topic || '').trim() || null,
+        ...identifierColumns(extractIdentifier(o.doi)),
       })
     }
   })
@@ -196,6 +216,8 @@ async function main() {
         paises: 'BR',
         citacoes: 0,
         idioma: (o.idioma || '').trim() || null,
+        topico_principal: null,
+        ...identifierColumns(extractIdentifier(o.doi_do_documento, o.link_do_documento)),
       })
       const pubId = info.lastInsertRowid
       const seen = new Set()
@@ -232,6 +254,11 @@ async function main() {
   console.log(`  publicações openalex: ${openalexRows.length}`)
   console.log(`  publicações oasisbr:  ${oasisbrRows.length}`)
   console.log(`  patentes:             ${patentRows.length}`)
+
+  const orcidRows = buildOrcidTable(openalexRows)
+  const insertOrcid = db.prepare('INSERT INTO autores_orcid (autor, orcid) VALUES (?, ?)')
+  db.transaction((rows) => { for (const [autor, orcid] of rows) insertOrcid.run(autor, orcid) })(orcidRows)
+  console.log(`  autores com ORCID:    ${orcidRows.length}`)
 
   const insertMeta = db.prepare(`INSERT INTO metadados (chave, valor) VALUES (?, ?)`)
   insertMeta.run('profile', JSON.stringify(previousMeta.profile || {
