@@ -89,17 +89,21 @@ function authorKey(name) {
   return String(name).replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
+export async function readPublications(conn) {
+  const schema = await conn.execute('PRAGMA table_info(publicacoes)')
+  const columns = new Set(schema.rows.map((column) => column.name))
+  const baseColumns = 'id, fonte, titulo, tipo, ano, doi, autores, instituicoes, paises, idioma'
+  // O Turso pode ainda ter o esquema anterior ao banco SQLite versionado.
+  const optionalColumns = ['topico_principal', 'identificador', 'identificador_tipo', 'identificador_url']
+    .map((name) => columns.has(name) ? name : `NULL AS ${name}`)
+  return conn.execute(`SELECT ${baseColumns}, ${optionalColumns.join(', ')} FROM publicacoes`)
+}
+
 async function loadRecords() {
   if (recordsPromise) return recordsPromise
   recordsPromise = (async () => {
     const conn = await db()
-    const baseColumns = 'id, fonte, titulo, tipo, ano, doi, autores, instituicoes, paises, idioma, topico_principal'
-    let pubs
-    try {
-      pubs = await conn.execute(`SELECT ${baseColumns}, identificador, identificador_tipo, identificador_url FROM publicacoes`)
-    } catch {
-      pubs = await conn.execute(`SELECT ${baseColumns} FROM publicacoes`) // banco ainda sem as colunas de identificador
-    }
+    const pubs = await readPublications(conn)
     const kws = await conn.execute('SELECT publicacao_id, keyword, grupo FROM keywords_publicacao')
     try {
       const orcids = await conn.execute('SELECT autor, orcid FROM autores_orcid')
