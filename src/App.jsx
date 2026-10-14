@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AdminPanel } from './components/AdminPanel'
 import { AdminLoginModal } from './components/AdminLoginModal'
 import { ProfileModal } from './components/ProfileModal'
 import { DetailSections } from './components/DetailSections'
 import { PatentSections } from './components/PatentSections'
-import logoObservatorio from './assets/logo-observatorio-blockchain.png'
 
 const DATA_TABS = ['Publicações', 'Patentes']
 
@@ -172,6 +171,16 @@ export default function App() {
     navigate(page)
   }
 
+  // Sem cabeçalho, a Administração é aberta pelo endereço do painel com #admin no final.
+  const selectPageRef = useRef(null)
+  selectPageRef.current = selectPage
+  useEffect(() => {
+    const openFromHash = () => { if (window.location.hash === '#admin') selectPageRef.current('Administração') }
+    openFromHash()
+    window.addEventListener('hashchange', openFromHash)
+    return () => window.removeEventListener('hashchange', openFromHash)
+  }, [])
+
   function logout() {
     setAdminCredentials(null)
     setProfileOpen(false)
@@ -191,24 +200,6 @@ export default function App() {
   }
 
   return <main className="app-shell">
-    <header className="site-header">
-      <div className="site-header-inner">
-        <a className="brand" href="#inicio" aria-label="Observatório Nacional de Blockchain — voltar à visão geral" onClick={(event) => { event.preventDefault(); navigate('Visão geral') }}>
-          <img src={logoObservatorio} alt="Observatório Nacional de Blockchain" />
-        </a>
-        <nav aria-label="Navegação do dashboard">
-          {[
-            ['Sobre os dados', 'info'], ['Administração', 'admin']
-          ].map(([label, icon]) => <button key={label} className={activePage === label ? 'active' : ''} aria-current={activePage === label ? 'page' : undefined} onClick={() => selectPage(label)}>
-            <NavIcon name={icon}/><span>{label}</span>
-          </button>)}
-        </nav>
-        <div className="header-actions">
-          <span className="data-status" title="Fonte: ONB / IBICT"><span className="pulse"></span>Dados públicos<small>ONB / IBICT</small></span>
-          <button className="avatar" aria-label={adminCredentials ? 'Editar perfil' : 'Entrar na administração'} title={adminCredentials ? 'Editar perfil' : 'Entrar na administração'} onClick={openProfile}>{data.profile.photo ? <img src={data.profile.photo} alt="" /> : data.profile.initials}</button>
-        </div>
-      </div>
-    </header>
 
 
     <section className={`dashboard view-${activePage.toLowerCase().replaceAll(' ', '-')}`} id="inicio">

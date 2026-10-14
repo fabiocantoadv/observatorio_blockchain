@@ -225,4 +225,6 @@ turso db tokens create observatorioblockchain  # TURSO_AUTH_TOKEN
 
 ### Administração
 
-O menu **Administração** permite editar os dados do painel. O login é validado contra a tabela `usuarios` (ou contra `ADMIN_USERNAME`/`ADMIN_PASSWORD` do ambiente); ao publicar, a edição é gravada na tabela `metadados` (chave `snapshot_override`).
+O painel não tem mais cabeçalho (logo, menu e área de login). A **Administração** é aberta pelo endereço do painel com `#admin` no final (ex.: `http://localhost:3000/#admin`), que mostra a tela de login. A página "Sobre os dados" deixou de ter acesso pelo painel.
+
+A Administração permite editar os dados do painel. O login é validado contra a tabela `usuarios` (ou contra `ADMIN_USERNAME`/`ADMIN_PASSWORD` do ambiente); ao publicar, a edição é gravada na tabela `metadados` (chave `snapshot_override`).
