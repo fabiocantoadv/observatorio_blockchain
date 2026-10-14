@@ -126,6 +126,7 @@ async function main() {
       citacoes INTEGER,
       idioma TEXT,
       topico_principal TEXT,
+      financiadores TEXT,
       identificador TEXT,
       identificador_tipo TEXT,
       identificador_url TEXT
@@ -160,8 +161,8 @@ async function main() {
   `)
 
   const insertPub = db.prepare(`
-    INSERT INTO publicacoes (fonte, external_id, titulo, tipo_original, tipo, ano, doi, autores, instituicoes, paises, citacoes, idioma, topico_principal, identificador, identificador_tipo, identificador_url)
-    VALUES (@fonte, @external_id, @titulo, @tipo_original, @tipo, @ano, @doi, @autores, @instituicoes, @paises, @citacoes, @idioma, @topico_principal, @identificador, @identificador_tipo, @identificador_url)
+    INSERT INTO publicacoes (fonte, external_id, titulo, tipo_original, tipo, ano, doi, autores, instituicoes, paises, citacoes, idioma, topico_principal, financiadores, identificador, identificador_tipo, identificador_url)
+    VALUES (@fonte, @external_id, @titulo, @tipo_original, @tipo, @ano, @doi, @autores, @instituicoes, @paises, @citacoes, @idioma, @topico_principal, @financiadores, @identificador, @identificador_tipo, @identificador_url)
   `)
   const insertKw = db.prepare(`INSERT INTO keywords_publicacao (publicacao_id, keyword, grupo) VALUES (?, ?, ?)`)
   const insertPat = db.prepare(`
@@ -194,6 +195,7 @@ async function main() {
         citacoes: Number.parseInt(o.cited_by_count, 10) || 0,
         idioma: (o.language || '').trim() || null,
         topico_principal: (o.primary_topic || '').trim() || null,
+        financiadores: (o.funders || '').trim() || null,
         ...identifierColumns(extractIdentifier(o.doi)),
       })
     }
@@ -217,6 +219,7 @@ async function main() {
         citacoes: 0,
         idioma: (o.idioma || '').trim() || null,
         topico_principal: null,
+        financiadores: null,
         ...identifierColumns(extractIdentifier(o.doi_do_documento, o.link_do_documento)),
       })
       const pubId = info.lastInsertRowid

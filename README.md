@@ -98,6 +98,7 @@ A barra de filtros tem duas abas, cada uma com seus filtros e o total do recorte
   - Organizações (top 20) e Países dos autores (top 10)
   - Tabelas de Afiliações e de Autores (com ORCID), com busca, ordenação e exportação CSV
   - Idioma, Rede de pesquisadores (link para o VOSviewer) e treemap das 50 palavras-chave mais utilizadas
+  - Tabela de Agências de fomento (campo funders do OpenAlex), com busca, paginação, exportação CSV e clique para filtrar
   - Treemap de Tópicos (tópico principal do OpenAlex), em largura total
   - Listagem das publicações, com coluna ID (DOI ou Handle, com link), busca, paginação e exportação CSV
 - **Patentes** (filtros: país do titular e ano de depósito)
@@ -137,7 +138,7 @@ Apesar da extensão `.sql`, é um banco SQLite binário, gerado a partir dos CSV
 
 | Tabela | Conteúdo |
 |---|---|
-| `publicacoes` | OpenAlex + OASISbr: título, tipo, ano, DOI, autores, instituições, países, citações, idioma, `topico_principal` e o identificador persistente (`identificador`, `identificador_tipo`, `identificador_url`: DOI ou, na falta dele, Handle) |
+| `publicacoes` | OpenAlex + OASISbr: título, tipo, ano, DOI, autores, instituições, países, citações, idioma, `topico_principal`, `financiadores` (agências de fomento do OpenAlex) e o identificador persistente (`identificador`, `identificador_tipo`, `identificador_url`: DOI ou, na falta dele, Handle) |
 | `keywords_publicacao` | palavras-chave do OASISbr, uma linha por termo, com tema (Tecnologia, Economia etc.) |
 | `autores_orcid` | nome do autor → ORCID (2.646 autores do OpenAlex) |
 | `patentes` | nº do pedido, título, titular, país do titular, data de depósito e resumo |
@@ -162,6 +163,7 @@ sqlite3 src/data/observatorio.sql "SELECT tipo, COUNT(*) FROM publicacoes GROUP 
 | `npm run build:data` | Reconstrói o banco a partir dos três CSVs (preserva `metadados` e `usuarios`) |
 | `npm run import:orcid` | Recria só a tabela `autores_orcid` a partir do CSV do OpenAlex |
 | `npm run fetch:topics` | Recoleta na API do OpenAlex o `primary_topic` de cada obra e grava a coluna no CSV (guarda uma cópia `*.antes_primary_topic.csv`); rode `build:data` em seguida |
+| `npm run fetch:funders` | Coleta na API do OpenAlex as agências de fomento (`funders`) de cada obra e grava a coluna no CSV; rode `build:data` em seguida |
 | `npm run fetch:language` | Coleta na API do OpenAlex o idioma (`language`) de cada obra e grava a coluna no CSV; rode `build:data` em seguida |
 | `node scripts/migrate-usuarios.mjs` | Cria ou atualiza o usuário da Administração (`SEED_ADMIN_USERNAME`, `SEED_ADMIN_PASSWORD`) |
 | `node scripts/push-to-turso.mjs` | Copia todas as tabelas do banco local para o Turso |
@@ -176,7 +178,7 @@ Detalhes:
 | Rota | Retorno |
 |---|---|
 | `GET /api/data` | agregados básicos (tipos de documento, publicações por ano, palavras-chave, patentes) e configuração |
-| `GET /api/insights?tipo=&ano=&instituicao=&autor=&pais=&idioma=&palavra=&topico=` | organizações, afiliações, autores (com ORCID), países, idiomas, 50 palavras-chave e tópicos do recorte |
+| `GET /api/insights?tipo=&ano=&instituicao=&autor=&pais=&idioma=&palavra=&topico=&financiador=` | organizações, afiliações, autores (com ORCID), países, idiomas, 50 palavras-chave e tópicos do recorte |
 | `GET /api/publicacoes?<mesmos filtros>&q=&page=&size=` | listagem paginada com busca; `&format=csv` exporta o recorte |
 | `GET /api/patentes?view=insights&ano=&pais=&titular=` | agregados da aba Patentes; sem `view`, listagem paginada (`q`, `page`, `size`, `format=csv`) |
 | `POST /api/auth`, `POST /api/data` | login e gravação das edições da Administração |

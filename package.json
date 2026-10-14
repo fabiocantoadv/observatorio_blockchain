@@ -12,7 +12,8 @@
     "serve": "node scripts/serve-local.mjs",
     "import:orcid": "node scripts/import-orcid.mjs",
     "fetch:topics": "node scripts/fetch-primary-topic.mjs",
-    "fetch:language": "node scripts/fetch-language.mjs"
+    "fetch:language": "node scripts/fetch-language.mjs",
+    "fetch:funders": "node scripts/fetch-funders.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

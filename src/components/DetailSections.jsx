@@ -471,6 +471,22 @@ export function DetailSections({ filters, onFilter, onSummary }) {
         />
       </Panel>
     </section>
+    <Panel className="full-width funders-panel" title="Agências de fomento" onClear={clear('financiador')} note={`Agências de fomento informadas pelo OpenAlex (campo funders) em ${fmt(data.coverage.funders || 0)} documentos; um documento conta para cada agência que o financiou. O OASISbr não traz esse campo. Clique numa linha para filtrar o painel.`}>
+      {data.funders?.length
+        ? <DataTable
+          columns={[
+            { key: 'name', label: 'Órgão de fomento' },
+            { key: 'documents', label: 'Documentos', align: 'right' },
+          ]}
+          rows={data.funders}
+          searchKeys={['name']}
+          exportName="agencias-de-fomento.csv"
+          onRowClick={(row) => pick('financiador')(row.name)}
+          rowKey="name"
+          selectedKey={sel('financiador')}
+        />
+        : <Empty>Nenhuma agência de fomento informada neste recorte.</Empty>}
+    </Panel>
 
     <section className="detail-grid narrow-left">
       <div className="panel-stack">

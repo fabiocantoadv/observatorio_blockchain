@@ -8,9 +8,9 @@ import { PatentSections } from './components/PatentSections'
 const DATA_TABS = ['Publicações', 'Patentes']
 
 // Filtros cruzados: os gráficos e tabelas acrescentam critérios ao clicar (ver DetailSections e PatentSections).
-const EMPTY_PUB_FILTERS = { tipo: 'Todos', ano: 'Todos', instituicao: '', autor: '', pais: '', idioma: '', palavra: '', topico: '' }
+const EMPTY_PUB_FILTERS = { tipo: 'Todos', ano: 'Todos', instituicao: '', autor: '', pais: '', idioma: '', palavra: '', topico: '', financiador: '' }
 const EMPTY_PATENT_FILTERS = { ano: 'Todos', pais: 'Todos', titular: '' }
-const PUB_FILTER_LABELS = { tipo: 'Tipo', ano: 'Ano', instituicao: 'Instituição', autor: 'Autor', pais: 'País', idioma: 'Idioma', palavra: 'Palavra-chave', topico: 'Tópico' }
+const PUB_FILTER_LABELS = { tipo: 'Tipo', ano: 'Ano', instituicao: 'Instituição', autor: 'Autor', pais: 'País', idioma: 'Idioma', palavra: 'Palavra-chave', topico: 'Tópico', financiador: 'Agência de fomento' }
 const PATENT_FILTER_LABELS = { ano: 'Ano de depósito', pais: 'País do titular', titular: 'Titular' }
 const LANGUAGE_NAMES = { por: 'Português', eng: 'Inglês', spa: 'Espanhol', ita: 'Italiano', fra: 'Francês', deu: 'Alemão', na: 'Não informado' }
 

@@ -94,7 +94,7 @@ export async function readPublications(conn) {
   const columns = new Set(schema.rows.map((column) => column.name))
   const baseColumns = 'id, fonte, titulo, tipo, ano, doi, autores, instituicoes, paises, idioma'
   // O Turso pode ainda ter o esquema anterior ao banco SQLite versionado.
-  const optionalColumns = ['topico_principal', 'identificador', 'identificador_tipo', 'identificador_url']
+  const optionalColumns = ['topico_principal', 'financiadores', 'identificador', 'identificador_tipo', 'identificador_url']
     .map((name) => columns.has(name) ? name : `NULL AS ${name}`)
   return conn.execute(`SELECT ${baseColumns}, ${optionalColumns.join(', ')} FROM publicacoes`)
 }
@@ -136,6 +136,8 @@ async function loadRecords() {
         languages: parseLanguages(r.idioma),
         keywords: kwByPub.get(id) || [],
         topic: r.topico_principal ? String(r.topico_principal) : '',
+        // Agências de fomento (campo funders do OpenAlex), separadas por "||".
+        funders: r.financiadores ? [...new Set(String(r.financiadores).split('||').map((f) => f.trim()).filter(Boolean))] : [],
         identifier: r.identificador ? { type: String(r.identificador_tipo), value: String(r.identificador), url: String(r.identificador_url) } : null,
       }
     })
@@ -156,7 +158,7 @@ function normalizeText(value) {
 //   palavra          → palavra-chave (OASISbr)
 //   topico           → tópico principal (OpenAlex)
 //   q                → busca textual (só na listagem)
-export const FILTER_KEYS = ['tipo', 'ano', 'instituicao', 'autor', 'pais', 'idioma', 'palavra', 'topico']
+export const FILTER_KEYS = ['tipo', 'ano', 'instituicao', 'autor', 'pais', 'idioma', 'palavra', 'topico', 'financiador']
 
 const lower = (v) => String(v || '').toLowerCase()
 
@@ -178,6 +180,7 @@ const TESTS = {
   idioma: (r, v) => (v === 'na' ? r.languages.length === 0 : r.languages.includes(v)),
   palavra: (r, v) => r.keywords.some((k) => lower(k.keyword) === lower(v)),
   topico: (r, v) => r.topic === v,
+  financiador: (r, v) => r.funders.some((x) => lower(x) === lower(v)),
   q: (r, v) => normalizeText(`${r.titulo} ${r.authors.join(' ')} ${r.institutions.join(' ')}`).includes(normalizeText(v)),
 }
 
@@ -238,6 +241,7 @@ export async function buildInsights(rawFilters) {
   const langWith = langSet.filter((r) => r.languages.length)
   const kwSet = subset('palavra')
   const topicSet = subset('topico').filter((r) => r.topic)
+  const funderSet = subset('financiador').filter((r) => r.funders.length)
 
   const authorRows = countBy(authorSet, (r) => r.authors)
 
@@ -250,6 +254,7 @@ export async function buildInsights(rawFilters) {
       languages: langWith.length,
       keywords: kwSet.filter((r) => r.keywords.length).length,
       topics: topicSet.length,
+      funders: funderSet.length,
     },
     byType,
     byYear,
@@ -265,6 +270,8 @@ export async function buildInsights(rawFilters) {
       .map(({ label, documents }) => ({ keyword: label.keyword, group: label.group, documents })),
     // Tópico principal do OpenAlex (primary_topic): todos os tópicos, do mais ao menos frequente.
     topics: countBy(topicSet, (r) => [r.topic]).map(({ label, documents }) => ({ topic: label, documents })),
+    // Agências de fomento do OpenAlex: todas, da que mais aparece para a que menos aparece.
+    funders: countBy(funderSet, (r) => r.funders).map(({ label, documents }) => ({ name: label, documents })),
   }
 }
 
